@@ -40,7 +40,7 @@ This note defines the current visual direction for the game and keeps the implem
 
 - Keep lane, frog, shadow, and water heights owned by named constants.
 - Use a small bob on pads and light frog scale motion for life.
-- Preserve partial camera follow on desktop. Phone-sized viewports should use a row-aligned camera with smooth full player tracking and a wider tactical view.
+- Preserve partial camera follow on desktop. Phone-sized viewports should use a row-aligned camera with smooth full player tracking, lower-third upward framing, downward look-ahead, and a wider tactical view.
 
 ## FX Language
 

@@ -32,6 +32,26 @@ export function computeBoardScreenSpanZoom(
   return viewportWidth * boardScreenWidths / worldWidth;
 }
 
+export function computeGroundCameraOffsetForScreenY(
+  viewportHeight: number,
+  zoom: number,
+  targetScreenY: number,
+  groundVerticalProjection: number,
+) {
+  if (
+    viewportHeight <= 0
+    || zoom <= 0
+    || groundVerticalProjection <= 0
+    || !Number.isFinite(targetScreenY)
+  ) {
+    return 0;
+  }
+
+  const clampedScreenY = clamp(targetScreenY, 0, 1);
+  const pixelOffsetFromCenter = (clampedScreenY - 0.5) * viewportHeight;
+  return pixelOffsetFromCenter / (zoom * groundVerticalProjection);
+}
+
 export function computeOrthographicZoom(
   viewportWidth: number,
   viewportHeight: number,

@@ -6,6 +6,27 @@ updated: 2026-06-26
 
 # Context Changelog
 
+## 1.26.14 - 2026-06-27
+
+Changed files and notes:
+
+- [Scene.tsx](../src/Scene.tsx)
+- [viewMath.ts](../src/viewMath.ts)
+- [viewMath.test.ts](../src/viewMath.test.ts)
+- [Architecture Map](Architecture%20Map.md)
+- [Art Direction Sheet](Art%20Direction%20Sheet.md)
+
+Reason:
+
+- Centered mobile framing could place the frog too close to the bottom controls and did not reserve view space based on vertical travel direction.
+- The mobile board span needed to decrease from `2.5` to `1.5` viewport widths for a better visibility-to-scale balance.
+
+Implementation impact:
+
+- Upward and neutral mobile movement place the frog on the lower-third screen line.
+- Downward movement smoothly shifts framing toward screen center to expose more space below; horizontal movement preserves the latest vertical look direction.
+- Screen-space target placement is converted through tested orthographic ground-projection math, while desktop framing remains unchanged.
+
 ## 1.26.13 - 2026-06-27
 
 Changed files and notes:

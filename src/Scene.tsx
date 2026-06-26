@@ -7,7 +7,11 @@ import {
 } from './gameConstants';
 import type { GameObject } from './gameConstants';
 import type { BonusItem, FrogState } from './gameCore';
-import { computeBoardScreenSpanZoom, isMobileCameraViewport } from './viewMath';
+import {
+  computeBoardScreenSpanZoom,
+  computeGroundCameraOffsetForScreenY,
+  isMobileCameraViewport,
+} from './viewMath';
 
 /* ═══════════════ WORLD HELPERS ═══════════════ */
 const S = 1 / CS;
@@ -43,7 +47,10 @@ const CAMERA_FOLLOW_X_SCALE = 0.42;
 const CAMERA_FOLLOW_SCALE = 0.72;
 const CAMERA_FOLLOW_DEAD_ZONE = 0.18;
 const MOBILE_CAMERA_DEAD_ZONE = 0.04;
-const MOBILE_BOARD_SCREEN_WIDTHS = 2.5;
+const MOBILE_BOARD_SCREEN_WIDTHS = 1.5;
+const MOBILE_UP_SCREEN_Y = 2 / 3;
+const MOBILE_DOWN_SCREEN_Y = 0.5;
+const MOBILE_GROUND_VERTICAL_PROJECTION = CAMERA_BASE_Y / Math.hypot(CAMERA_BASE_Y, CAMERA_BASE_Z);
 const CAMERA_SIDE_SAFE_X_DESKTOP = 0.2;
 const CAMERA_BOTTOM_SAFE_Z_DESKTOP = 0.75;
 
@@ -83,6 +90,7 @@ function CameraFollow({ frogRef, totalRows }: { frogRef: React.MutableRefObject<
   const targetX = useRef(0);
   const targetZ = useRef(0);
   const initialized = useRef(false);
+  const verticalDirection = useRef<'up' | 'down'>('up');
   const mobileQuaternion = useMemo(() => {
     const referenceCamera = new THREE.OrthographicCamera();
     referenceCamera.position.set(0, CAMERA_BASE_Y, CAMERA_BASE_Z);
@@ -103,8 +111,29 @@ function CameraFollow({ frogRef, totalRows }: { frogRef: React.MutableRefObject<
 
   useFrame((_, delta) => {
     const mobile = isMobileCameraViewport(size.width, size.height);
-    const frogX = toX(frogRef.current.pos.x + CS / 2);
-    const frogZ = toZ(frogRef.current.pos.y + CS / 2, totalRows);
+    const frog = frogRef.current;
+    if (frog.direction === 'up' || frog.direction === 'down') {
+      verticalDirection.current = frog.direction;
+    }
+    const frogX = toX(frog.pos.x + CS / 2);
+    const frogZ = toZ(frog.pos.y + CS / 2, totalRows);
+    const targetZoom = mobile
+      ? computeBoardScreenSpanZoom(
+          size.width,
+          BOARD_WIDTH * S,
+          MOBILE_BOARD_SCREEN_WIDTHS,
+          CAMERA_BASE_ZOOM,
+        )
+      : CAMERA_BASE_ZOOM;
+    const mobileScreenY = verticalDirection.current === 'down'
+      ? MOBILE_DOWN_SCREEN_Y
+      : MOBILE_UP_SCREEN_Y;
+    const mobileGroundOffset = computeGroundCameraOffsetForScreenY(
+      size.height,
+      targetZoom,
+      mobileScreenY,
+      MOBILE_GROUND_VERTICAL_PROJECTION,
+    );
     const sideSafeOffset = mobile ? 0 : CAMERA_SIDE_SAFE_X_DESKTOP;
     const bottomSafeOffset = mobile ? 0 : CAMERA_BOTTOM_SAFE_Z_DESKTOP;
     const desiredX = mobile
@@ -117,7 +146,7 @@ function CameraFollow({ frogRef, totalRows }: { frogRef: React.MutableRefObject<
       : desiredX - Math.sign(deltaX) * deadZone;
 
     const desiredZ = mobile
-      ? frogZ
+      ? frogZ - mobileGroundOffset
       : frogZ * CAMERA_FOLLOW_SCALE + bottomSafeOffset;
     const deltaZ = desiredZ - targetZ.current;
     const softenedTargetZ = Math.abs(deltaZ) <= deadZone
@@ -137,19 +166,11 @@ function CameraFollow({ frogRef, totalRows }: { frogRef: React.MutableRefObject<
       ? BOARD_WIDTH * S / 2
       : Math.max(0.8, BOARD_WIDTH * S * 0.16);
     const maxShiftZ = mobile
-      ? Math.max(1.2, totalRows / 2 - 0.5)
+      ? Math.max(1.2, totalRows / 2 - 0.5 + Math.abs(mobileGroundOffset))
       : Math.max(1.2, (totalRows - 11) / 2 * 0.6);
     const clampedX = Math.max(-maxShiftX, Math.min(maxShiftX, targetX.current));
     const clampedZ = Math.max(-maxShiftZ, Math.min(maxShiftZ, targetZ.current));
     const targetBaseX = mobile ? 0 : CAMERA_BASE_X;
-    const targetZoom = mobile
-      ? computeBoardScreenSpanZoom(
-          size.width,
-          BOARD_WIDTH * S,
-          MOBILE_BOARD_SCREEN_WIDTHS,
-          CAMERA_BASE_ZOOM,
-        )
-      : CAMERA_BASE_ZOOM;
     const desiredCameraX = targetBaseX + clampedX;
     const desiredCameraZ = CAMERA_BASE_Z + clampedZ;
 

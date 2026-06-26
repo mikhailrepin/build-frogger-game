@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   computeBoardScreenSpanZoom,
+  computeGroundCameraOffsetForScreenY,
   computeOrthographicZoom,
   isMobileCameraViewport,
 } from './viewMath';
@@ -26,9 +27,17 @@ describe('view math', () => {
   });
 
   it('projects the board across the requested number of screen widths', () => {
-    const zoom = computeBoardScreenSpanZoom(390, 13, 2.5, 55);
+    const zoom = computeBoardScreenSpanZoom(390, 13, 1.5, 55);
 
-    expect(13 * zoom / 390).toBeCloseTo(2.5, 6);
-    expect(computeBoardScreenSpanZoom(0, 13, 2.5, 55)).toBe(55);
+    expect(13 * zoom / 390).toBeCloseTo(1.5, 6);
+    expect(computeBoardScreenSpanZoom(0, 13, 1.5, 55)).toBe(55);
+  });
+
+  it('converts a lower-third screen target into a ground camera offset', () => {
+    const offset = computeGroundCameraOffsetForScreenY(844, 45, 2 / 3, 0.8);
+
+    expect(offset).toBeCloseTo((844 / 6) / (45 * 0.8), 6);
+    expect(computeGroundCameraOffsetForScreenY(844, 45, 0.5, 0.8)).toBe(0);
+    expect(computeGroundCameraOffsetForScreenY(0, 45, 2 / 3, 0.8)).toBe(0);
   });
 });
