@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { computeOrthographicZoom } from './viewMath';
+import {
+  computeBoardScreenSpanZoom,
+  computeOrthographicZoom,
+  isMobileCameraViewport,
+} from './viewMath';
 
 describe('view math', () => {
   it('fits an orthographic camera to the smaller available dimension', () => {
@@ -12,5 +16,19 @@ describe('view math', () => {
     expect(computeOrthographicZoom(0, 844, 13, 25, { minZoom: 12 })).toBe(12);
     expect(computeOrthographicZoom(390, 0, 13, 25, { minZoom: 12 })).toBe(12);
     expect(computeOrthographicZoom(390, 844, 13, 25, { minZoom: 12, maxZoom: 20 })).toBeGreaterThanOrEqual(12);
+  });
+
+  it('detects phone-sized portrait and landscape viewports', () => {
+    expect(isMobileCameraViewport(390, 844)).toBe(true);
+    expect(isMobileCameraViewport(844, 390)).toBe(true);
+    expect(isMobileCameraViewport(768, 1024)).toBe(false);
+    expect(isMobileCameraViewport(1280, 720)).toBe(false);
+  });
+
+  it('projects the board across the requested number of screen widths', () => {
+    const zoom = computeBoardScreenSpanZoom(390, 13, 2.5, 55);
+
+    expect(13 * zoom / 390).toBeCloseTo(2.5, 6);
+    expect(computeBoardScreenSpanZoom(0, 13, 2.5, 55)).toBe(55);
   });
 });

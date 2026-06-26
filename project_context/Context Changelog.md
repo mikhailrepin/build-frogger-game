@@ -6,6 +6,27 @@ updated: 2026-06-26
 
 # Context Changelog
 
+## 1.26.13 - 2026-06-27
+
+Changed files and notes:
+
+- [Scene.tsx](../src/Scene.tsx)
+- [viewMath.ts](../src/viewMath.ts)
+- [viewMath.test.ts](../src/viewMath.test.ts)
+- [Architecture Map](Architecture%20Map.md)
+- [Art Direction Sheet](Art%20Direction%20Sheet.md)
+
+Reason:
+
+- The desktop-oriented diagonal camera clipped the frog near horizontal board edges on phone screens and reduced tactical visibility.
+- Mobile camera selection, board screen-span zoom, and orientation needed an automatic viewport-driven policy.
+
+Implementation impact:
+
+- Phone-sized portrait and landscape viewports automatically use a row-aligned orthographic camera.
+- Mobile camera follow tracks the frog across the full X/Z board range with frame-rate-independent damping and no manual mode toggle.
+- Mobile board width projects across `2.5` viewport widths; desktop camera orientation, zoom, and bounded follow remain unchanged.
+
 ## 1.26.12 - 2026-06-27
 
 Changed files and notes:

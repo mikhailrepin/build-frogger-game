@@ -7,6 +7,7 @@ import {
 } from './gameConstants';
 import type { GameObject } from './gameConstants';
 import type { BonusItem, FrogState } from './gameCore';
+import { computeBoardScreenSpanZoom, isMobileCameraViewport } from './viewMath';
 
 /* ═══════════════ WORLD HELPERS ═══════════════ */
 const S = 1 / CS;
@@ -32,16 +33,18 @@ const BOARD_PLINTH_MARGIN = 0.5;
 const FROG_SHADOW_Y = -0.27;
 const ROAD_MARKING_Y_OFFSET = 0.018;
 const ROAD_MARKING_HEIGHT = 0.006;
+const CAMERA_BASE_Y = 8;
 const CAMERA_BASE_X = 6;
 const CAMERA_BASE_Z = 6;
 const CAMERA_BASE_ZOOM = 55;
-const CAMERA_FOLLOW_BLEND = 0.07;
+const CAMERA_FOLLOW_DAMPING = 4.5;
+const CAMERA_MODE_DAMPING = 6;
 const CAMERA_FOLLOW_X_SCALE = 0.42;
 const CAMERA_FOLLOW_SCALE = 0.72;
 const CAMERA_FOLLOW_DEAD_ZONE = 0.18;
-const CAMERA_SIDE_SAFE_X_MOBILE = 0.35;
+const MOBILE_CAMERA_DEAD_ZONE = 0.04;
+const MOBILE_BOARD_SCREEN_WIDTHS = 2.5;
 const CAMERA_SIDE_SAFE_X_DESKTOP = 0.2;
-const CAMERA_BOTTOM_SAFE_Z_MOBILE = 1.3;
 const CAMERA_BOTTOM_SAFE_Z_DESKTOP = 0.75;
 
 function toX(v: number) { return v * S - CX; }
@@ -79,44 +82,91 @@ function CameraFollow({ frogRef, totalRows }: { frogRef: React.MutableRefObject<
   const { camera, size } = useThree();
   const targetX = useRef(0);
   const targetZ = useRef(0);
+  const initialized = useRef(false);
+  const mobileQuaternion = useMemo(() => {
+    const referenceCamera = new THREE.OrthographicCamera();
+    referenceCamera.position.set(0, CAMERA_BASE_Y, CAMERA_BASE_Z);
+    referenceCamera.lookAt(0, 0, 0);
+    return referenceCamera.quaternion.clone();
+  }, []);
+  const desktopQuaternion = useMemo(() => {
+    const referenceCamera = new THREE.OrthographicCamera();
+    referenceCamera.position.set(CAMERA_BASE_X, CAMERA_BASE_Y, CAMERA_BASE_Z);
+    referenceCamera.lookAt(0, 0, 0);
+    return referenceCamera.quaternion.clone();
+  }, []);
 
   useEffect(() => {
     targetX.current = 0;
     targetZ.current = 0;
-    camera.position.x = CAMERA_BASE_X;
-    camera.position.z = CAMERA_BASE_Z;
-    camera.zoom = CAMERA_BASE_ZOOM;
-    camera.updateProjectionMatrix();
-  }, [camera, totalRows]);
+  }, [totalRows]);
 
-  useFrame(() => {
-    const sideSafeOffset = size.width < 768 || size.height < 760
-      ? CAMERA_SIDE_SAFE_X_MOBILE
-      : CAMERA_SIDE_SAFE_X_DESKTOP;
-    const bottomSafeOffset = size.width < 768 || size.height < 760
-      ? CAMERA_BOTTOM_SAFE_Z_MOBILE
-      : CAMERA_BOTTOM_SAFE_Z_DESKTOP;
-    const desiredX = toX(frogRef.current.pos.x + CS / 2) * CAMERA_FOLLOW_X_SCALE + sideSafeOffset;
+  useFrame((_, delta) => {
+    const mobile = isMobileCameraViewport(size.width, size.height);
+    const frogX = toX(frogRef.current.pos.x + CS / 2);
+    const frogZ = toZ(frogRef.current.pos.y + CS / 2, totalRows);
+    const sideSafeOffset = mobile ? 0 : CAMERA_SIDE_SAFE_X_DESKTOP;
+    const bottomSafeOffset = mobile ? 0 : CAMERA_BOTTOM_SAFE_Z_DESKTOP;
+    const desiredX = mobile
+      ? frogX
+      : frogX * CAMERA_FOLLOW_X_SCALE + sideSafeOffset;
+    const deadZone = mobile ? MOBILE_CAMERA_DEAD_ZONE : CAMERA_FOLLOW_DEAD_ZONE;
     const deltaX = desiredX - targetX.current;
-    const softenedTargetX = Math.abs(deltaX) <= CAMERA_FOLLOW_DEAD_ZONE
+    const softenedTargetX = Math.abs(deltaX) <= deadZone
       ? targetX.current
-      : desiredX - Math.sign(deltaX) * CAMERA_FOLLOW_DEAD_ZONE;
-    targetX.current += (softenedTargetX - targetX.current) * CAMERA_FOLLOW_BLEND;
+      : desiredX - Math.sign(deltaX) * deadZone;
 
-    const desiredZ = toZ(frogRef.current.pos.y + CS / 2, totalRows) * CAMERA_FOLLOW_SCALE + bottomSafeOffset;
+    const desiredZ = mobile
+      ? frogZ
+      : frogZ * CAMERA_FOLLOW_SCALE + bottomSafeOffset;
     const deltaZ = desiredZ - targetZ.current;
-    const softenedTargetZ = Math.abs(deltaZ) <= CAMERA_FOLLOW_DEAD_ZONE
+    const softenedTargetZ = Math.abs(deltaZ) <= deadZone
       ? targetZ.current
-      : desiredZ - Math.sign(deltaZ) * CAMERA_FOLLOW_DEAD_ZONE;
-    targetZ.current += (softenedTargetZ - targetZ.current) * CAMERA_FOLLOW_BLEND;
+      : desiredZ - Math.sign(deltaZ) * deadZone;
 
-    const maxShiftX = Math.max(0.8, BOARD_WIDTH * S * 0.16);
-    const maxShiftZ = Math.max(1.2, (totalRows - 11) / 2 * 0.6);
+    const followAlpha = 1 - Math.exp(-CAMERA_FOLLOW_DAMPING * delta);
+    if (!initialized.current) {
+      targetX.current = softenedTargetX;
+      targetZ.current = softenedTargetZ;
+    } else {
+      targetX.current += (softenedTargetX - targetX.current) * followAlpha;
+      targetZ.current += (softenedTargetZ - targetZ.current) * followAlpha;
+    }
+
+    const maxShiftX = mobile
+      ? BOARD_WIDTH * S / 2
+      : Math.max(0.8, BOARD_WIDTH * S * 0.16);
+    const maxShiftZ = mobile
+      ? Math.max(1.2, totalRows / 2 - 0.5)
+      : Math.max(1.2, (totalRows - 11) / 2 * 0.6);
     const clampedX = Math.max(-maxShiftX, Math.min(maxShiftX, targetX.current));
     const clampedZ = Math.max(-maxShiftZ, Math.min(maxShiftZ, targetZ.current));
+    const targetBaseX = mobile ? 0 : CAMERA_BASE_X;
+    const targetZoom = mobile
+      ? computeBoardScreenSpanZoom(
+          size.width,
+          BOARD_WIDTH * S,
+          MOBILE_BOARD_SCREEN_WIDTHS,
+          CAMERA_BASE_ZOOM,
+        )
+      : CAMERA_BASE_ZOOM;
+    const desiredCameraX = targetBaseX + clampedX;
+    const desiredCameraZ = CAMERA_BASE_Z + clampedZ;
 
-    camera.position.x = CAMERA_BASE_X + clampedX;
-    camera.position.z = CAMERA_BASE_Z + clampedZ;
+    if (!initialized.current) {
+      camera.position.set(desiredCameraX, CAMERA_BASE_Y, desiredCameraZ);
+      camera.quaternion.copy(mobile ? mobileQuaternion : desktopQuaternion);
+      camera.zoom = targetZoom;
+      initialized.current = true;
+    } else {
+      const modeAlpha = 1 - Math.exp(-CAMERA_MODE_DAMPING * delta);
+      camera.position.x += (desiredCameraX - camera.position.x) * modeAlpha;
+      camera.position.y += (CAMERA_BASE_Y - camera.position.y) * modeAlpha;
+      camera.position.z += (desiredCameraZ - camera.position.z) * modeAlpha;
+      camera.quaternion.slerp(mobile ? mobileQuaternion : desktopQuaternion, modeAlpha);
+      camera.zoom += (targetZoom - camera.zoom) * modeAlpha;
+    }
+    camera.updateProjectionMatrix();
   });
 
   return null;

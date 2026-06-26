@@ -5,8 +5,31 @@ export interface OrthographicFitOptions {
   maxZoom?: number;
 }
 
+const MOBILE_CAMERA_MAX_LONG_EDGE = 1024;
+const MOBILE_CAMERA_MAX_SHORT_EDGE = 767;
+
 function clamp(value: number, min: number, max: number) {
   return Math.max(min, Math.min(max, value));
+}
+
+export function isMobileCameraViewport(viewportWidth: number, viewportHeight: number) {
+  if (viewportWidth <= 0 || viewportHeight <= 0) return false;
+  const shortEdge = Math.min(viewportWidth, viewportHeight);
+  const longEdge = Math.max(viewportWidth, viewportHeight);
+  return shortEdge <= MOBILE_CAMERA_MAX_SHORT_EDGE && longEdge <= MOBILE_CAMERA_MAX_LONG_EDGE;
+}
+
+export function computeBoardScreenSpanZoom(
+  viewportWidth: number,
+  worldWidth: number,
+  boardScreenWidths: number,
+  fallbackZoom: number,
+) {
+  if (viewportWidth <= 0 || worldWidth <= 0 || boardScreenWidths <= 0) {
+    return fallbackZoom;
+  }
+
+  return viewportWidth * boardScreenWidths / worldWidth;
 }
 
 export function computeOrthographicZoom(
