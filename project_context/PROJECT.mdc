@@ -50,9 +50,9 @@ Result: production build succeeds.
 - Dev overlay can now show the frog's current row and column through a dedicated query flag.
 - Score transition constants are now named in `src/gameCore.ts` instead of using raw literals.
 - Lane classification helpers now centralize road, river, goal, and row lookup policy.
-- The top HUD now uses a compact capsule layout with score, health or active bonus countdown, level, and pause.
+- The top HUD now uses the Figma-aligned compact capsule layout with `Geologica` typography, local UI assets, liquid-glass treatment, score, health or active bonus countdown, level, and pause.
 - Camera framing now keeps the baseline orthographic zoom stable and follows the player with a lower-screen reserve for controls.
-- Primary HUD indicators, controls, and state overlays now use lucide icons instead of emoji glyphs or one-off inline SVG controls.
+- Primary HUD indicators and controls now use local Figma-exported UI assets with lucide fallback icons for non-Figma bonus types instead of emoji glyphs or one-off inline SVG controls.
 - The art direction sheet now lives in `project_context/Art Direction Sheet.md` as the stable visual reference.
 - Decorative grass tufts now use instancing instead of spawning dozens of separate meshes per safe lane.
 - Reduced-motion preferences now suppress screen shake and the main decorative bob/oscillation effects.

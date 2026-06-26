@@ -6,6 +6,24 @@ updated: 2026-06-26
 
 # Context Changelog
 
+## 1.26.6 - 2026-06-26
+
+Changed files and notes:
+
+- [App.tsx](../src/App.tsx)
+- [index.css](../src/index.css)
+- [Architecture Map](Architecture%20Map.md)
+- [PROJECT.mdc](PROJECT.mdc)
+- [Figma UI assets](../public/ui)
+
+Reason:
+
+- The HUD and touch controls were aligned to the accessible Figma `HMI Studio` nodes for element sizing, `Geologica` typography, and liquid-glass interface treatment.
+
+Implementation impact:
+
+- Agents should preserve the `public/ui` Figma assets, `Geologica` font treatment, `48px` navigation buttons, and liquid-glass HUD styling when changing game UI.
+
 ## 1.26.5 - 2026-06-26
 
 Changed files and notes:

@@ -2,20 +2,11 @@ import { useEffect, useState, type ComponentType } from 'react';
 import { Canvas } from '@react-three/fiber';
 import {
   Anchor,
-  ArrowDown,
-  ArrowLeft,
-  ArrowRight,
-  ArrowUp,
   Bug,
-  Coins,
-  HeartPulse,
-  Pause,
   Play,
   Rabbit,
   RotateCcw,
-  Shield,
   Skull,
-  Timer,
   Trophy,
 } from 'lucide-react';
 import * as THREE from 'three';
@@ -28,12 +19,26 @@ import { getRowFromY } from './gameCore';
 type IconComponent = ComponentType<{ className?: string; strokeWidth?: number }>;
 type BonusKind = 'shield' | 'slowTime' | 'currentAnchor' | 'superHop' | 'fly';
 
-const BONUS_HUD: Record<BonusKind, { Icon: IconComponent; className: string }> = {
-  shield: { Icon: Shield, className: 'text-amber-200 drop-shadow-[0_0_12px_rgba(251,191,36,0.75)]' },
-  slowTime: { Icon: Timer, className: 'text-sky-200 drop-shadow-[0_0_12px_rgba(125,211,252,0.75)]' },
-  currentAnchor: { Icon: Anchor, className: 'text-teal-200 drop-shadow-[0_0_12px_rgba(94,234,212,0.75)]' },
-  superHop: { Icon: Rabbit, className: 'text-orange-200 drop-shadow-[0_0_12px_rgba(251,146,60,0.75)]' },
-  fly: { Icon: Bug, className: 'text-lime-200 drop-shadow-[0_0_12px_rgba(190,242,100,0.75)]' },
+const UI_ASSETS = {
+  coins: '/ui/coins-icon.svg',
+  frog: '/ui/froggy-icon.svg',
+  shield: '/ui/shield-icon.svg',
+  clock: '/ui/clock-fading-icon.svg',
+  pause: '/ui/btn-pause.svg',
+  controls: {
+    up: '/ui/btn-up.svg',
+    left: '/ui/btn-left.svg',
+    down: '/ui/btn-down.svg',
+    right: '/ui/btn-right.svg',
+  } satisfies Record<Direction, string>,
+};
+
+const BONUS_HUD: Record<BonusKind, { Icon?: IconComponent; src?: string; className: string }> = {
+  shield: { src: UI_ASSETS.shield, className: 'drop-shadow-[0_0_10px_rgba(255,159,0,0.65)]' },
+  slowTime: { src: UI_ASSETS.clock, className: 'drop-shadow-[0_0_10px_rgba(0,217,238,0.65)]' },
+  currentAnchor: { Icon: Anchor, className: 'text-teal-200 drop-shadow-[0_0_10px_rgba(94,234,212,0.65)]' },
+  superHop: { Icon: Rabbit, className: 'text-orange-200 drop-shadow-[0_0_10px_rgba(251,146,60,0.65)]' },
+  fly: { Icon: Bug, className: 'text-lime-200 drop-shadow-[0_0_10px_rgba(190,242,100,0.65)]' },
 };
 
 function ControlButton({ direction, onMove, className = '' }: {
@@ -41,14 +46,6 @@ function ControlButton({ direction, onMove, className = '' }: {
   onMove: (direction: Direction) => void;
   className?: string;
 }) {
-  const Icon = direction === 'up'
-    ? ArrowUp
-    : direction === 'down'
-      ? ArrowDown
-      : direction === 'left'
-        ? ArrowLeft
-        : ArrowRight;
-
   return (
     <button
       type="button"
@@ -57,9 +54,9 @@ function ControlButton({ direction, onMove, className = '' }: {
         event.preventDefault();
         onMove(direction);
       }}
-      className={`pointer-events-auto flex h-16 w-16 touch-none items-center justify-center rounded-[1.35rem] border border-white/25 bg-[#02190d]/70 text-slate-200 shadow-[0_0_22px_rgba(0,0,0,0.35)] backdrop-blur-md transition active:scale-95 sm:h-12 sm:w-12 sm:rounded-2xl ${className}`}
+      className={`pointer-events-auto h-12 w-12 touch-none rounded-[18px] transition active:scale-95 ${className}`}
     >
-      <Icon className="h-7 w-7 sm:h-5 sm:w-5" strokeWidth={3} />
+      <img src={UI_ASSETS.controls[direction]} alt="" className="h-full w-full select-none" draggable={false} />
     </button>
   );
 }
@@ -143,6 +140,7 @@ export default function App() {
 
   const activeBonusMeta = activeBonus ? BONUS_HUD[activeBonus.kind] : null;
   const ActiveBonusIcon = activeBonusMeta?.Icon;
+  const activeBonusText = activeBonus ? Math.max(0, activeBonus.remainingSeconds) : gameState.lives;
 
   return (
     <div className="fixed inset-0 select-none overflow-hidden bg-[#002713]">
@@ -192,66 +190,70 @@ export default function App() {
 
       <div
         className="pointer-events-none absolute left-0 right-0 top-0 z-20 flex justify-center"
-        style={{ paddingTop: 'max(16px, env(safe-area-inset-top))' }}
+        style={{ paddingTop: 'max(10px, env(safe-area-inset-top))' }}
       >
         <div
-          className="pointer-events-auto flex h-[4.35rem] items-center justify-between rounded-[2rem] border border-white/25 bg-[#02190d]/75 px-5 text-slate-200 shadow-[0_16px_40px_rgba(0,0,0,0.25)] backdrop-blur-md sm:h-[3.75rem] sm:px-4"
-          style={{ width: 'min(calc(100% - 32px), 760px)' }}
+          className="liquid-glass ui-font pointer-events-auto flex h-14 min-w-0 max-w-[720px] items-center justify-between rounded-[20px] p-1 text-[var(--ui-fg)] min-[520px]:min-w-[380px]"
+          style={{ width: 'min(calc(100vw - 24px), 480px)' }}
         >
-          <div className="flex min-w-[6rem] items-center gap-2">
-            <Coins className="h-7 w-7 text-yellow-300 sm:h-5 sm:w-5" strokeWidth={2.8} />
-            <span className="font-mono text-4xl font-black leading-none tracking-normal text-slate-300 tabular-nums sm:text-2xl">
+          <div className="flex min-w-[86px] shrink-0 items-center gap-2 px-2 min-[390px]:min-w-[100px]">
+            <img src={UI_ASSETS.coins} alt="" className="h-6 w-6 shrink-0" draggable={false} />
+            <span className="min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap text-[24px] font-normal leading-8 tracking-[2.4px] text-[var(--ui-fg)] tabular-nums">
               {gameState.score}
             </span>
           </div>
 
-          <div className="flex min-w-[5rem] items-center justify-center gap-2">
-            {ActiveBonusIcon ? (
-              <>
-                <ActiveBonusIcon className={`h-9 w-9 sm:h-6 sm:w-6 ${activeBonusMeta.className}`} strokeWidth={2.8} />
-                <span className="font-mono text-3xl font-black leading-none tracking-normal text-slate-300 tabular-nums sm:text-xl">
-                  {activeBonus?.remainingSeconds ?? 0}s
-                </span>
-              </>
+          <div className="flex h-8 min-w-[46px] flex-1 items-center justify-center gap-2">
+            {activeBonusMeta?.src ? (
+              <img src={activeBonusMeta.src} alt="" className={`h-6 w-6 shrink-0 ${activeBonusMeta.className}`} draggable={false} />
+            ) : ActiveBonusIcon ? (
+              <ActiveBonusIcon className={`h-6 w-6 shrink-0 ${activeBonusMeta.className}`} strokeWidth={2.4} />
             ) : (
-              <>
-                <HeartPulse className="h-9 w-9 text-emerald-400 drop-shadow-[0_0_12px_rgba(52,211,153,0.75)] sm:h-6 sm:w-6" strokeWidth={2.6} />
-                <span className="font-mono text-3xl font-black leading-none tracking-normal text-slate-300 tabular-nums sm:text-xl">
-                  {gameState.lives}
-                </span>
-              </>
+              <img src={UI_ASSETS.frog} alt="" className="h-[22px] w-[26px] shrink-0 drop-shadow-[0_0_10px_rgba(0,255,93,0.55)]" draggable={false} />
             )}
+            {activeBonus ? (
+              <img src={UI_ASSETS.clock} alt="" className="hidden h-6 w-6 shrink-0 min-[390px]:block" draggable={false} />
+            ) : null}
+            <span className="whitespace-nowrap text-[20px] font-medium leading-8 tracking-[2px] text-[var(--ui-fg)] tabular-nums">
+              {activeBonusText}
+            </span>
           </div>
 
-          <div className="flex min-w-[7.25rem] items-center justify-end gap-3 sm:min-w-[6rem] sm:gap-2">
-            <span className="whitespace-nowrap font-mono text-3xl font-black leading-none tracking-normal text-slate-300 sm:text-xl">
-              LVL {gameState.level}
+          <div className="flex shrink-0 items-center justify-end gap-3">
+            <span className="whitespace-nowrap text-[20px] font-medium uppercase leading-8 tracking-[2px] text-[var(--ui-fg)]">
+              L {gameState.level}
             </span>
             <button
               type="button"
               aria-label={gameState.paused ? 'Resume' : 'Pause'}
               onClick={togglePause}
-              className="flex h-14 w-14 items-center justify-center rounded-[1.55rem] border border-white/25 bg-[#02190d]/70 text-slate-300 transition hover:bg-white/10 active:scale-95 sm:h-11 sm:w-11 sm:rounded-2xl"
+              className="flex h-12 w-12 items-center justify-center rounded-[18px] text-[var(--ui-fg)] transition active:scale-95"
             >
-              {gameState.paused ? <Play className="h-6 w-6" strokeWidth={3} /> : <Pause className="h-6 w-6" strokeWidth={3} />}
+              {gameState.paused ? (
+                <span className="liquid-glass flex h-12 w-12 items-center justify-center rounded-[18px]">
+                  <Play className="h-5 w-5" strokeWidth={3} />
+                </span>
+              ) : (
+                <img src={UI_ASSETS.pause} alt="" className="h-full w-full" draggable={false} />
+              )}
             </button>
           </div>
         </div>
       </div>
 
       <div
-        className="pointer-events-none absolute bottom-0 left-0 right-0 z-20 flex flex-col items-center"
-        style={{ paddingBottom: 'max(18px, env(safe-area-inset-bottom))' }}
+        className="ui-font pointer-events-none absolute bottom-0 left-0 right-0 z-20 flex flex-col items-center"
+        style={{ paddingBottom: 'max(14px, env(safe-area-inset-bottom))' }}
       >
-        <ControlButton direction="up" onMove={(direction) => moveFrog(direction, 'touch')} className="mb-3 sm:mb-2" />
-        <div className="flex gap-4 sm:gap-3">
+        <ControlButton direction="up" onMove={(direction) => moveFrog(direction, 'touch')} className="mb-2" />
+        <div className="flex gap-2">
           <ControlButton direction="left" onMove={(direction) => moveFrog(direction, 'touch')} />
           <ControlButton direction="down" onMove={(direction) => moveFrog(direction, 'touch')} />
           <ControlButton direction="right" onMove={(direction) => moveFrog(direction, 'touch')} />
         </div>
         {supportsKeyboardHints && (
-          <p className="mt-3 font-mono text-xs font-semibold tracking-normal text-slate-300/75 sm:text-[10px]">
-            Arrow Keys / WASD | P Pause
+          <p className="mt-1.5 rounded-lg text-[10px] font-normal leading-4 text-white/70 [text-shadow:0_2px_2.8px_black]">
+            Arrow Keys / WASD&nbsp;&nbsp;•&nbsp;&nbsp;P Pause
           </p>
         )}
       </div>

@@ -1,0 +1,10 @@
+<svg preserveAspectRatio="none" width="100%" height="100%" overflow="visible" style="display: block;" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g id="BtnPause">
+<rect width="48" height="48" rx="16" fill="var(--fill-0, black)" fill-opacity="0.2"/>
+<rect x="0.5" y="0.5" width="47" height="47" rx="15.5" stroke="var(--stroke-0, #7B7B7B)" stroke-opacity="0.5"/>
+<g id="Vector">
+<path d="M28.0005 18H26.0002C25.632 18 25.3335 18.2985 25.3335 18.6667V29.3333C25.3335 29.7015 25.632 30 26.0002 30H28.0005C28.3687 30 28.6672 29.7015 28.6672 29.3333V18.6667C28.6672 18.2985 28.3687 18 28.0005 18Z" fill="var(--fill-0, #BACABC)"/>
+<path d="M21.9998 18H19.9995C19.6313 18 19.3328 18.2985 19.3328 18.6667V29.3333C19.3328 29.7015 19.6313 30 19.9995 30H21.9998C22.368 30 22.6665 29.7015 22.6665 29.3333V18.6667C22.6665 18.2985 22.368 18 21.9998 18Z" fill="var(--fill-0, #BACABC)"/>
+</g>
+</g>
+</svg>
