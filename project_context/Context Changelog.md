@@ -6,6 +6,28 @@ updated: 2026-06-26
 
 # Context Changelog
 
+## 1.27.1 - 2026-06-27
+
+Changed files and notes:
+
+- [App.tsx](../src/App.tsx)
+- [PauseOverlay.tsx](../src/PauseOverlay.tsx)
+- [audio.ts](../src/audio.ts)
+- [audio.test.ts](../src/audio.test.ts)
+- [Architecture Map](Architecture%20Map.md)
+- [Project audit](PROJECT.mdc)
+
+Reason:
+
+- Pause audio controls needed a real zero-volume state and synchronized transitions between volume changes and the Sound On/Off button.
+
+Implementation impact:
+
+- Quieter reaches level zero, becomes disabled there, and leaves all four volume segments inactive.
+- Sound Off from level one collapses the stored level to zero, so Quieter is also disabled; Sound On restores one level.
+- Reaching zero automatically switches to Sound Off; toggling sound from zero restores level one and Sound On.
+- Any enabled Quieter or Louder action exits button-triggered mute while applying the requested volume change.
+
 ## 1.27.0 - 2026-06-27
 
 Changed files and notes:

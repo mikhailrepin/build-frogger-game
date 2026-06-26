@@ -52,7 +52,7 @@ Result: production build succeeds.
 - Score transition constants are now named in `src/gameCore.ts` instead of using raw literals.
 - Lane classification helpers now centralize road, river, goal, and row lookup policy.
 - The top HUD now uses the Figma-aligned compact capsule layout with `Geologica` typography, local UI assets, liquid-glass treatment, score, health or active bonus countdown, level, and pause.
-- The pause overlay now matches the HMI Studio layout and exposes four master-volume levels, mute state, and resume control; bonus guide and main screen remain intentional non-functional placeholders.
+- The pause overlay now matches the HMI Studio layout and exposes four visible master-volume segments plus a zero-volume state, synchronized mute behavior, and resume control; bonus guide and main screen remain intentional non-functional placeholders.
 - Camera framing now keeps the baseline orthographic zoom stable and follows the player with a lower-screen reserve for controls.
 - Primary HUD indicators and controls now use local Figma-exported UI assets with lucide fallback icons for non-Figma bonus types instead of emoji glyphs or one-off inline SVG controls.
 - The art direction sheet now lives in `project_context/Art Direction Sheet.md` as the stable visual reference.

@@ -17,10 +17,9 @@ import type { Direction } from './gameConstants';
 import { CELL_SIZE } from './gameConstants';
 import { getRowFromY } from './gameCore';
 import {
-  AUDIO_VOLUME_LEVELS,
+  adjustAudioVolume,
   getAudioSettings,
-  setAudioMuted,
-  setAudioVolumeLevel,
+  toggleAudioMuted,
 } from './audio';
 
 type IconComponent = ComponentType<{ className?: string; strokeWidth?: number }>;
@@ -150,19 +149,13 @@ export default function App() {
   const ActiveBonusIcon = activeBonusMeta?.Icon;
   const activeBonusText = activeBonus ? Math.max(0, activeBonus.remainingSeconds) : gameState.lives;
   const decreaseVolume = () => {
-    const volumeLevel = Math.max(1, audioSettings.volumeLevel - 1);
-    setAudioVolumeLevel(volumeLevel);
-    setAudioSettingsState({ ...audioSettings, volumeLevel });
+    setAudioSettingsState(adjustAudioVolume(-1));
   };
   const increaseVolume = () => {
-    const volumeLevel = Math.min(AUDIO_VOLUME_LEVELS, audioSettings.volumeLevel + 1);
-    setAudioVolumeLevel(volumeLevel);
-    setAudioSettingsState({ ...audioSettings, volumeLevel });
+    setAudioSettingsState(adjustAudioVolume(1));
   };
   const toggleMuted = () => {
-    const muted = !audioSettings.muted;
-    setAudioMuted(muted);
-    setAudioSettingsState({ ...audioSettings, muted });
+    setAudioSettingsState(toggleAudioMuted());
   };
 
   return (

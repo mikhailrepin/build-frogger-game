@@ -10,6 +10,7 @@ let musicPlaying = false;
 const MASTER_GAIN_MAX = 0.3;
 
 export const AUDIO_VOLUME_LEVELS = 4;
+export const MIN_AUDIO_VOLUME_LEVEL = 0;
 export const DEFAULT_AUDIO_VOLUME_LEVEL = 2;
 
 export interface AudioSettings {
@@ -23,7 +24,7 @@ let audioSettings: AudioSettings = {
 };
 
 function clampVolumeLevel(level: number) {
-  return Math.max(1, Math.min(AUDIO_VOLUME_LEVELS, Math.round(level)));
+  return Math.max(MIN_AUDIO_VOLUME_LEVEL, Math.min(AUDIO_VOLUME_LEVELS, Math.round(level)));
 }
 
 function getMasterGainValue() {
@@ -58,9 +59,10 @@ export function getAudioSettings(): AudioSettings {
 }
 
 export function setAudioVolumeLevel(volumeLevel: number) {
+  const nextVolumeLevel = clampVolumeLevel(volumeLevel);
   audioSettings = {
-    ...audioSettings,
-    volumeLevel: clampVolumeLevel(volumeLevel),
+    volumeLevel: nextVolumeLevel,
+    muted: nextVolumeLevel === MIN_AUDIO_VOLUME_LEVEL,
   };
   syncMasterGain();
   return getAudioSettings();
@@ -68,11 +70,21 @@ export function setAudioVolumeLevel(volumeLevel: number) {
 
 export function setAudioMuted(muted: boolean) {
   audioSettings = {
-    ...audioSettings,
+    volumeLevel: muted
+      ? (audioSettings.volumeLevel === 1 ? MIN_AUDIO_VOLUME_LEVEL : audioSettings.volumeLevel)
+      : Math.max(1, audioSettings.volumeLevel),
     muted,
   };
   syncMasterGain();
   return getAudioSettings();
+}
+
+export function adjustAudioVolume(delta: number) {
+  return setAudioVolumeLevel(audioSettings.volumeLevel + delta);
+}
+
+export function toggleAudioMuted() {
+  return setAudioMuted(!audioSettings.muted);
 }
 
 function disconnectNode(node: AudioNode | null | undefined) {

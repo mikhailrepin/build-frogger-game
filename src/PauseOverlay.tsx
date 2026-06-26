@@ -72,7 +72,7 @@ export function PauseOverlay({
               type="button"
               aria-label="Decrease volume"
               onClick={onDecreaseVolume}
-              disabled={volumeLevel <= 1}
+              disabled={volumeLevel <= 0}
               className="flex h-12 w-12 items-center justify-center rounded-2xl border border-[rgba(123,123,123,0.5)] bg-black/20 p-1 transition hover:bg-white/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#84cd4c]/70 active:scale-95 disabled:opacity-40"
             >
               <img src={PAUSE_ASSETS.volumeLow} alt="" className="h-6 w-6" draggable={false} />
