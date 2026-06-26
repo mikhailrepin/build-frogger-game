@@ -44,8 +44,9 @@ This note defines the current visual direction for the game and keeps the implem
 
 ## FX Language
 
-- Use subtle longitudinal water streaks that follow the canal axis, screen shake on death, and bounce-in overlays.
+- Use subtle longitudinal water streaks that follow each lane's platform direction, screen shake on death, and bounce-in overlays.
 - Keep contiguous river sections visually seamless; avoid circular ripple patterns and per-lane surface breaks.
+- Keep water under the lily-pad goal row static and aligned to the main canal palette.
 - Avoid excessive bloom, particle spam, or noisy post-processing.
 - Reward feedback should be clear and short-lived, not cinematic.
 - Level modifiers should read visually: rain should feel wet and lower contrast, night traffic should feel darker with stronger headlights, and current-heavy boards should keep the water motion readable.

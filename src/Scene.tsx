@@ -24,6 +24,7 @@ const FROG_HOP_ARC = 0.2;
 const FROG_GROUND_OFFSET = 0.01;
 const WATER_Y = -0.01;
 const WATER_EDGE_OVERLAP = 0.04;
+const WATER_COLOR = '#0045A0';
 const LEVEL_BACKGROUND = '#072615';
 const BOARD_PLINTH_Y = -0.2;
 const BOARD_PLINTH_HEIGHT = 0.3;
@@ -127,8 +128,8 @@ interface RiverSection {
   endIndex: number;
   z: number;
   height: number;
-  flowDirection: number;
-  flowSpeed: number;
+  firstLaneZ: number;
+  laneFlows: [number, number, number, number];
 }
 
 function WaterSection({
@@ -143,8 +144,9 @@ function WaterSection({
     uTime: { value: 0 },
     uWorldZ: { value: section.z },
     uSeed: { value: section.startIndex * 1.37 },
-    uFlowDirection: { value: section.flowDirection },
-    uFlowSpeed: { value: section.flowSpeed },
+    uFirstLaneZ: { value: section.firstLaneZ },
+    uLaneCount: { value: section.height },
+    uLaneFlows: { value: new THREE.Vector4(...section.laneFlows) },
     uReducedMotion: { value: reducedMotion ? 1 : 0 },
   }), [reducedMotion, section]);
 
@@ -178,8 +180,9 @@ function WaterSection({
         fragmentShader={`
           uniform float uTime;
           uniform float uSeed;
-          uniform float uFlowDirection;
-          uniform float uFlowSpeed;
+          uniform float uFirstLaneZ;
+          uniform float uLaneCount;
+          uniform vec4 uLaneFlows;
           uniform float uReducedMotion;
           varying vec2 vWaterPosition;
 
@@ -200,13 +203,9 @@ function WaterSection({
             return mix(mix(a, b, local.x), mix(c, d, local.x), local.y);
           }
 
-          void main() {
-            vec3 deep = vec3(0.0, 0.2705882353, 0.6274509804);
-            vec3 mid = vec3(0.0156862745, 0.3215686275, 0.7098039216);
-            vec3 highlight = vec3(0.1058823529, 0.4666666667, 0.8509803922);
-
+          vec2 sampleCurrent(float signedFlow) {
             float motion = 1.0 - uReducedMotion;
-            float flow = uTime * uFlowSpeed * uFlowDirection * motion;
+            float flow = uTime * signedFlow * motion;
             vec2 broadUv = vec2(
               (vWaterPosition.x - flow) * 0.34 + uSeed,
               vWaterPosition.y * 1.35
@@ -217,7 +216,37 @@ function WaterSection({
               (vWaterPosition.x - flow * 1.35) * 0.72 + uSeed * 0.47,
               vWaterPosition.y * 4.8 + broad * 0.7
             );
-            float detail = valueNoise(detailUv);
+            return vec2(broad, valueNoise(detailUv));
+          }
+
+          vec2 sampleLaneCurrent() {
+            float lanePosition = clamp(
+              uFirstLaneZ - vWaterPosition.y,
+              0.0,
+              max(0.0, uLaneCount - 1.0)
+            );
+
+            if (lanePosition < 1.0) {
+              float blend = smoothstep(0.38, 0.62, lanePosition);
+              return mix(sampleCurrent(uLaneFlows.x), sampleCurrent(uLaneFlows.y), blend);
+            }
+            if (lanePosition < 2.0) {
+              float blend = smoothstep(1.38, 1.62, lanePosition);
+              return mix(sampleCurrent(uLaneFlows.y), sampleCurrent(uLaneFlows.z), blend);
+            }
+
+            float blend = smoothstep(2.38, 2.62, lanePosition);
+            return mix(sampleCurrent(uLaneFlows.z), sampleCurrent(uLaneFlows.w), blend);
+          }
+
+          void main() {
+            vec3 deep = vec3(0.0, 0.2705882353, 0.6274509804);
+            vec3 mid = vec3(0.0156862745, 0.3215686275, 0.7098039216);
+            vec3 highlight = vec3(0.1058823529, 0.4666666667, 0.8509803922);
+
+            vec2 current = sampleLaneCurrent();
+            float broad = current.x;
+            float detail = current.y;
             float currentBand = 0.5 + 0.5 * sin(
               vWaterPosition.y * 10.0 + broad * 2.4 + detail * 1.2
             );
@@ -234,8 +263,17 @@ function WaterSection({
   );
 }
 
+function StaticWaterLane({ z }: { z: number }) {
+  return (
+    <mesh position={[0, WATER_Y, z]} rotation={[-Math.PI / 2, 0, 0]}>
+      <planeGeometry args={[W, 1 + WATER_EDGE_OVERLAP]} />
+      <meshBasicMaterial color={WATER_COLOR} toneMapped={false} />
+    </mesh>
+  );
+}
+
 function WaterPlane({ lanes, totalRows, reducedMotion }: { lanes: LaneConfig[]; totalRows: number; reducedMotion: boolean }) {
-  const sections = useMemo(() => {
+  const { sections, goalWaterZ } = useMemo(() => {
     const result: RiverSection[] = [];
     let startIndex = -1;
 
@@ -246,19 +284,24 @@ function WaterPlane({ lanes, totalRows, reducedMotion }: { lanes: LaneConfig[]; 
       const lastGy = (totalRows - endIndex) * CS;
       const firstZ = toZ(firstGy + CS / 2, totalRows);
       const lastZ = toZ(lastGy + CS / 2, totalRows);
-      const dominantSpeed = sectionLanes.reduce((dominant, lane) => (
-        Math.abs(lane.speed) > Math.abs(dominant) ? lane.speed : dominant
-      ), 0);
-      const averageSpeed = sectionLanes.reduce((sum, lane) => sum + Math.abs(lane.speed), 0)
-        / sectionLanes.length;
+      const flows = sectionLanes.map((lane) => {
+        const speed = Math.min(1.3, Math.max(0.55, Math.abs(lane.speed) * 0.65));
+        return speed * (Math.sign(lane.speed) || 1);
+      });
+      const lastFlow = flows.at(-1) ?? 0;
 
       result.push({
         startIndex,
         endIndex,
         z: (firstZ + lastZ) / 2,
         height: sectionLanes.length,
-        flowDirection: Math.sign(dominantSpeed) || 1,
-        flowSpeed: Math.min(1.3, Math.max(0.55, averageSpeed * 0.65)),
+        firstLaneZ: firstZ,
+        laneFlows: [
+          flows[0] ?? lastFlow,
+          flows[1] ?? lastFlow,
+          flows[2] ?? lastFlow,
+          flows[3] ?? lastFlow,
+        ],
       });
       startIndex = -1;
     };
@@ -272,7 +315,13 @@ function WaterPlane({ lanes, totalRows, reducedMotion }: { lanes: LaneConfig[]; 
     });
     addSection(lanes.length);
 
-    return result;
+    const goalIndex = lanes.findIndex(lane => lane.type === 'goal');
+    const goalGy = goalIndex >= 0 ? (totalRows - 1 - goalIndex) * CS : 0;
+
+    return {
+      sections: result,
+      goalWaterZ: goalIndex >= 0 ? toZ(goalGy + CS / 2, totalRows) : null,
+    };
   }, [lanes, totalRows]);
 
   return (
@@ -284,6 +333,7 @@ function WaterPlane({ lanes, totalRows, reducedMotion }: { lanes: LaneConfig[]; 
           reducedMotion={reducedMotion}
         />
       ))}
+      {goalWaterZ !== null && <StaticWaterLane z={goalWaterZ} />}
     </group>
   );
 }

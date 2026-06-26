@@ -6,6 +6,25 @@ updated: 2026-06-26
 
 # Context Changelog
 
+## 1.26.12 - 2026-06-27
+
+Changed files and notes:
+
+- [Scene.tsx](../src/Scene.tsx)
+- [Architecture Map](Architecture%20Map.md)
+- [Art Direction Sheet](Art%20Direction%20Sheet.md)
+
+Reason:
+
+- A single dominant flow direction made platforms in opposing river lanes appear to move against the current.
+- The lily-pad goal lane still exposed the dark board surface instead of the current blue water palette.
+
+Implementation impact:
+
+- Preserve one water mesh per contiguous river section, but drive and smoothly blend shader flow from each lane's signed platform speed.
+- Render the lily-pad goal lane as static `#0045A0` water without animated current detail.
+- Keep the board plinth separate and unchanged.
+
 ## 1.26.11 - 2026-06-27
 
 Changed files and notes:
