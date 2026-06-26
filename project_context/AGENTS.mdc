@@ -7,9 +7,10 @@ This file defines how agents must work in this project.
 - `project_context` is an Obsidian vault and the canonical project context layer.
 - Before implementation, read [Context index](00%20Context%20Index.md), [Agent context protocol](Agent%20Context%20Protocol.md), [Project overview](Project%20Overview.md), [Architecture map](Architecture%20Map.md), and [Implementation notes](Implementation%20Notes.md).
 - Treat `.obsidian` as vault configuration. Do not delete or rewrite `.obsidian` files unless the task is explicitly about Obsidian configuration.
+- Use `project_context` as the memory store for the project. Verify the vault and the source files together before editing behavior.
 - Keep Obsidian notes, context documents, and code references synchronized during implementation.
 - If source code and context disagree, inspect source code first, then update the context note or record the mismatch in [Context changelog](Context%20Changelog.md).
-- When documentation mentions concrete implementation, link to the relevant source file, for example [useGame.ts](../src/useGame.ts), [Scene.tsx](../src/Scene.tsx), [App.tsx](../src/App.tsx), [gameConstants.ts](../src/gameConstants.ts), or [audio.ts](../src/audio.ts).
+- When documentation mentions concrete implementation, link to the relevant source file, for example [useGame.ts](../src/useGame.ts), [gameCore.ts](../src/gameCore.ts), [gameChallenge.ts](../src/gameChallenge.ts), [highScoreStorage.ts](../src/highScoreStorage.ts), [Scene.tsx](../src/Scene.tsx), [App.tsx](../src/App.tsx), [gameConstants.ts](../src/gameConstants.ts), [viewMath.ts](../src/viewMath.ts), [gameMetrics.ts](../src/gameMetrics.ts), [gameMetricsStorage.ts](../src/gameMetricsStorage.ts), [gameReplay.ts](../src/gameReplay.ts), or [audio.ts](../src/audio.ts).
 - Maintain bidirectional context links where practical: new stable context notes should be linked from [Context index](00%20Context%20Index.md), and affected notes should link back to related project docs or code.
 - Meaningful context changes must include a versioned entry in [Context changelog](Context%20Changelog.md).
 
@@ -20,6 +21,7 @@ This file defines how agents must work in this project.
 - Keep the playfield readable, responsive, and fast.
 - Prefer deterministic game rules over visual-only fixes.
 - Do not hide technical debt behind UI polish.
+- Treat context versioning as part of the implementation surface, not an afterthought.
 
 ## Architecture Rules
 

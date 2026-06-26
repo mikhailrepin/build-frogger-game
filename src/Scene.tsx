@@ -1,29 +1,54 @@
-import { useRef, useMemo, createContext, useContext } from 'react';
+import { useRef, useMemo, useEffect, createContext, useContext } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import {
   CELL_SIZE as CS, COLS, BOARD_WIDTH,
-  LILY_PAD_POSITIONS, type Direction, type LaneConfig,
+  LILY_PAD_POSITIONS, type LaneConfig, type LevelModifier,
 } from './gameConstants';
 import type { GameObject } from './gameConstants';
+import type { BonusItem, FrogState } from './gameCore';
+import { computeOrthographicZoom } from './viewMath';
 
 /* ═══════════════ WORLD HELPERS ═══════════════ */
 const S = 1 / CS;
 const W = COLS;
 const CX = W / 2;
+const LANE_SURFACE_Y = {
+  road: 0.08,
+  safe: 0.12,
+  decoration: 0.12,
+  river: -0.08,
+} as const;
+const LANE_TILE_HEIGHT = 0.08;
+const FROG_RIVER_LIFT = 0.28;
+const FROG_HOP_ARC = 0.2;
+const FROG_GROUND_OFFSET = 0.01;
+const WATER_Y = -0.01;
+const WATER_OPACITY = 0.9;
+const BOARD_PLINTH_Y = -0.2;
+const BOARD_PLINTH_HEIGHT = 0.3;
+const BOARD_PLINTH_MARGIN = 0.5;
+const FROG_SHADOW_Y = -0.27;
 
 function toX(v: number) { return v * S - CX; }
 function toZ(v: number, totalRows: number) { return v * S - totalRows / 2; }
 
 function laneY(type: string) {
-  if (type === 'road') return 0.08;
-  if (type === 'safe' || type === 'decoration') return 0.12;
-  return -0.08;
+  return LANE_SURFACE_Y[type as keyof typeof LANE_SURFACE_Y] ?? LANE_SURFACE_Y.river;
 }
 
 /* ═══════════════ CLIPPING PLANES ═══════════════ */
 const ClipContext = createContext<THREE.Plane[]>([]);
 function useClip() { return useContext(ClipContext); }
+
+function DebugBox({ size, color = '#00e5ff' }: { size: [number, number, number]; color?: string }) {
+  return (
+    <mesh>
+      <boxGeometry args={size} />
+      <meshBasicMaterial color={color} wireframe transparent opacity={0.9} />
+    </mesh>
+  );
+}
 
 function makeClipPlanes(totalRows: number) {
   const cz = totalRows / 2;
@@ -36,15 +61,25 @@ function makeClipPlanes(totalRows: number) {
 }
 
 /* ═══════════════ CAMERA FOLLOW ═══════════════ */
-function CameraFollow({ frogZ, totalRows }: { frogZ: number; totalRows: number }) {
-  const { camera } = useThree();
+function CameraFollow({ frogRef, totalRows }: { frogRef: React.MutableRefObject<FrogState>; totalRows: number }) {
+  const { camera, size } = useThree();
   const targetZ = useRef(0);
+
+  useEffect(() => {
+    const zoom = computeOrthographicZoom(size.width, size.height, COLS + 2.5, totalRows + 4, {
+      safety: 0.92,
+      minZoom: 18,
+      maxZoom: 55,
+    });
+    camera.zoom = zoom;
+    camera.updateProjectionMatrix();
+  }, [camera, size.width, size.height, totalRows]);
 
   useFrame(() => {
     if (totalRows <= 17) return; // small levels don't need follow
 
     // Smoothly track frog Z
-    const desired = frogZ * 0.6; // partial follow
+    const desired = toZ(frogRef.current.pos.y + CS / 2, totalRows) * 0.6; // partial follow
     targetZ.current += (desired - targetZ.current) * 0.05;
     const maxShift = (totalRows - 15) / 2 * 0.5;
     const clamped = Math.max(-maxShift, Math.min(maxShift, targetZ.current));
@@ -57,7 +92,7 @@ function CameraFollow({ frogZ, totalRows }: { frogZ: number; totalRows: number }
 }
 
 /* ═══════════════ WATER ═══════════════ */
-function WaterPlane({ totalRows }: { totalRows: number }) {
+function WaterPlane({ totalRows, reducedMotion }: { totalRows: number; reducedMotion: boolean }) {
   const ref = useRef<THREE.Mesh>(null);
   const geoRef = useRef<THREE.PlaneGeometry>(null);
   const H = totalRows;
@@ -69,16 +104,17 @@ function WaterPlane({ totalRows }: { totalRows: number }) {
     for (let i = 0; i < pos.count; i++) {
       const px = pos.getX(i);
       const pz = pos.getZ(i);
-      pos.setY(i, Math.sin(px * 2.5 + t * 1.6) * 0.02 + Math.cos(pz * 3 + t * 1.1) * 0.015);
+      const wave = reducedMotion ? 0 : Math.sin(px * 2.5 + t * 1.6) * 0.02 + Math.cos(pz * 3 + t * 1.1) * 0.015;
+      pos.setY(i, wave);
     }
     pos.needsUpdate = true;
   });
 
   return (
-    <mesh ref={ref} position={[0, -0.01, 0]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
+    <mesh ref={ref} position={[0, WATER_Y, 0]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
       <planeGeometry ref={geoRef} args={[W + 2, H + 2, 40, 24]} />
       <meshStandardMaterial color="#1565c0" emissive="#0d47a1" emissiveIntensity={0.05}
-        roughness={0.15} metalness={0.3} transparent opacity={0.9} />
+        roughness={0.15} metalness={0.3} transparent opacity={WATER_OPACITY} />
     </mesh>
   );
 }
@@ -105,7 +141,7 @@ function LaneTiles({ lanes, totalRows }: { lanes: LaneConfig[]; totalRows: numbe
         const gy = (totalRows - 1 - idx) * CS;
         const y = laneY(type);
         const z = toZ(gy + CS / 2, totalRows);
-        const h = y + 0.08;
+        const h = y + LANE_TILE_HEIGHT;
         let color = '#4caf50';
         if (type === 'road') color = '#424242';
         else if (type === 'decoration') color = '#2e7d32';
@@ -158,15 +194,26 @@ function GrassTufts({ gy, y, seed, totalRows }: { gy: number; y: number; seed: n
     return a;
   }, [gy, seed, totalRows]);
 
+  const instancedRef = useRef<THREE.InstancedMesh>(null);
+  const dummy = useMemo(() => new THREE.Object3D(), []);
+
+  useEffect(() => {
+    if (!instancedRef.current) return;
+    blades.forEach((b, i) => {
+      dummy.position.set(b.x, y + b.h / 2, b.z);
+      dummy.rotation.set(0, b.r, 0);
+      dummy.scale.set(1, b.h, 1);
+      dummy.updateMatrix();
+      instancedRef.current!.setMatrixAt(i, dummy.matrix);
+    });
+    instancedRef.current.instanceMatrix.needsUpdate = true;
+  }, [blades, dummy, y]);
+
   return (
-    <group>
-      {blades.map((b, i) => (
-        <mesh key={i} position={[b.x, y + b.h / 2, b.z]} rotation={[0, b.r, 0]}>
-          <boxGeometry args={[0.02, b.h, 0.02]} />
-          <meshStandardMaterial color="#7cb342" roughness={1} />
-        </mesh>
-      ))}
-    </group>
+    <instancedMesh ref={instancedRef} args={[undefined, undefined, blades.length]}>
+      <boxGeometry args={[0.02, 1, 0.02]} />
+      <meshStandardMaterial color="#7cb342" roughness={1} />
+    </instancedMesh>
   );
 }
 
@@ -190,40 +237,98 @@ function DecorationBushes({ gy, y, totalRows }: { gy: number; y: number; totalRo
 }
 
 /* ═══════════════ FROG 3D ═══════════════ */
-function Frog3D({ frogX, frogZ, direction, isHopping, alive, laneType }: {
-  frogX: number; frogZ: number; direction: Direction; isHopping: boolean; alive: boolean; laneType: string;
+function Frog3D({ frogRef, laneConfigs, totalRows, showCollisionBoxes, reducedMotion, shieldActive, slowTimeActive, currentAnchorActive, superHopActive }: {
+  frogRef: React.MutableRefObject<FrogState>;
+  laneConfigs: LaneConfig[];
+  totalRows: number;
+  showCollisionBoxes: boolean;
+  reducedMotion: boolean;
+  shieldActive: boolean;
+  slowTimeActive: boolean;
+  currentAnchorActive: boolean;
+  superHopActive: boolean;
 }) {
   const groupRef = useRef<THREE.Group>(null);
 
-  // KEY FIX: frog sits ON TOP of logs/turtles, not inside them
-  let baseY: number;
-  if (laneType === 'river') {
-    baseY = 0.28; // raised above log/turtle surface
-  } else {
-    baseY = laneY(laneType) + 0.01;
-  }
-  const hopArc = isHopping ? 0.2 : 0;
-  const rot = direction === 'up' ? 0 : direction === 'right' ? -Math.PI / 2
-    : direction === 'down' ? Math.PI : Math.PI / 2;
-
   useFrame(({ clock }) => {
-    if (!groupRef.current || !alive) return;
-    const b = 1 + Math.sin(clock.getElapsedTime() * 3.5) * 0.015;
+    if (!groupRef.current) return;
+    const frog = frogRef.current;
+    const frogRow = totalRows - 1 - Math.round(frog.pos.y / CS);
+    const laneType = laneConfigs[Math.max(0, Math.min(frogRow, laneConfigs.length - 1))]?.type ?? 'safe';
+    const baseY = laneType === 'river' ? FROG_RIVER_LIFT : laneY(laneType) + FROG_GROUND_OFFSET;
+    const hopArc = reducedMotion ? 0 : frog.isHopping ? FROG_HOP_ARC : 0;
+    const rot = frog.direction === 'up' ? 0 : frog.direction === 'right' ? -Math.PI / 2
+      : frog.direction === 'down' ? Math.PI : Math.PI / 2;
+    const b = reducedMotion ? 1 : 1 + Math.sin(clock.getElapsedTime() * 3.5) * 0.015;
+    groupRef.current.visible = frog.alive;
+    groupRef.current.position.set(
+      toX(frog.pos.x + CS / 2),
+      baseY + hopArc,
+      toZ(frog.pos.y + CS / 2, totalRows),
+    );
+    groupRef.current.rotation.set(0, rot, 0);
     groupRef.current.scale.set(b, b, b);
   });
 
-  if (!alive) return null;
-
   return (
-    <group ref={groupRef} position={[frogX, baseY + hopArc, frogZ]} rotation={[0, rot, 0]}>
+    <group ref={groupRef}>
+      {showCollisionBoxes && <DebugBox size={[0.56, 0.58, 0.56]} color="#22d3ee" />}
       {/* Shadow */}
-      <mesh position={[0, -hopArc - baseY + laneY(laneType) + 0.005, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-        <circleGeometry args={[isHopping ? 0.15 : 0.2, 12]} />
-        <meshBasicMaterial color="black" transparent opacity={isHopping ? 0.1 : 0.18} side={THREE.DoubleSide} />
+      <mesh position={[0, FROG_SHADOW_Y, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <circleGeometry args={[0.2, 12]} />
+        <meshBasicMaterial color="black" transparent opacity={0.18} side={THREE.DoubleSide} />
       </mesh>
       {/* Body */}
       <mesh position={[0, 0.1, 0]} castShadow><sphereGeometry args={[0.2, 14, 10]} /><meshStandardMaterial color="#43a047" roughness={0.5} metalness={0.05} /></mesh>
       <mesh position={[0, 0.06, 0.05]}><sphereGeometry args={[0.15, 10, 8]} /><meshStandardMaterial color="#a5d6a7" roughness={0.6} /></mesh>
+      {shieldActive && (
+        <group>
+          <mesh position={[0, 0.12, 0]} rotation={[Math.PI / 2, 0, 0]}>
+            <torusGeometry args={[0.42, 0.04, 10, 20]} />
+            <meshStandardMaterial color="#fbbf24" emissive="#f59e0b" emissiveIntensity={1.8} transparent opacity={0.85} />
+          </mesh>
+          <pointLight color="#fbbf24" intensity={1.1} distance={2} />
+        </group>
+      )}
+      {slowTimeActive && (
+        <group>
+          <mesh position={[0, 0.1, 0]} rotation={[Math.PI / 2, 0, 0]}>
+            <torusGeometry args={[0.52, 0.03, 8, 24]} />
+            <meshStandardMaterial color="#93c5fd" emissive="#60a5fa" emissiveIntensity={1.1} transparent opacity={0.7} />
+          </mesh>
+          <pointLight color="#60a5fa" intensity={0.9} distance={2.4} />
+        </group>
+      )}
+      {currentAnchorActive && (
+        <group>
+          <mesh position={[0, 0.04, 0]}>
+            <cylinderGeometry args={[0.02, 0.02, 0.28, 10]} />
+            <meshStandardMaterial color="#5eead4" emissive="#14b8a6" emissiveIntensity={1} />
+          </mesh>
+          <mesh position={[0, -0.1, 0]} rotation={[Math.PI / 2, 0, 0]}>
+            <torusGeometry args={[0.18, 0.02, 8, 18]} />
+            <meshStandardMaterial color="#99f6e4" emissive="#14b8a6" emissiveIntensity={0.7} transparent opacity={0.8} />
+          </mesh>
+          <pointLight color="#14b8a6" intensity={0.7} distance={2} />
+        </group>
+      )}
+      {superHopActive && (
+        <group>
+          <mesh position={[0, 0.02, 0]}>
+            <torusGeometry args={[0.58, 0.025, 8, 24]} />
+            <meshStandardMaterial color="#fde68a" emissive="#f59e0b" emissiveIntensity={1.1} transparent opacity={0.8} />
+          </mesh>
+          <mesh position={[0, 0.28, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+            <coneGeometry args={[0.08, 0.18, 10]} />
+            <meshStandardMaterial color="#fbbf24" emissive="#f59e0b" emissiveIntensity={1.2} />
+          </mesh>
+          <mesh position={[0, 0.12, 0]} rotation={[0, 0, 0]}>
+            <coneGeometry args={[0.08, 0.18, 10]} />
+            <meshStandardMaterial color="#fbbf24" emissive="#f59e0b" emissiveIntensity={1.2} />
+          </mesh>
+          <pointLight color="#f59e0b" intensity={0.95} distance={2.6} />
+        </group>
+      )}
       {/* Head */}
       <mesh position={[0, 0.16, -0.16]} castShadow><sphereGeometry args={[0.14, 12, 10]} /><meshStandardMaterial color="#66bb6a" roughness={0.45} /></mesh>
       <mesh position={[0, 0.13, -0.26]}><sphereGeometry args={[0.08, 10, 8]} /><meshStandardMaterial color="#81c784" roughness={0.5} /></mesh>
@@ -250,9 +355,9 @@ function Frog3D({ frogX, frogZ, direction, isHopping, alive, laneType }: {
       {/* Back legs */}
       {[-1, 1].map(side => (
         <group key={`bl${side}`}>
-          <mesh position={[side * 0.15, 0.06, 0.1]} rotation={[isHopping ? -0.8 : 0.6, 0, side * 0.3]} castShadow><capsuleGeometry args={[0.04, 0.16, 4, 8]} /><meshStandardMaterial color="#388e3c" roughness={0.7} /></mesh>
-          <mesh position={[side * 0.2, 0.02, isHopping ? 0.05 : 0.22]} rotation={[isHopping ? 0.4 : -0.3, 0, side * 0.2]}><capsuleGeometry args={[0.03, 0.12, 4, 8]} /><meshStandardMaterial color="#43a047" roughness={0.7} /></mesh>
-          <mesh position={[side * 0.24, 0, isHopping ? 0.04 : 0.3]}><sphereGeometry args={[0.05, 8, 6]} /><meshStandardMaterial color="#66bb6a" roughness={0.6} /></mesh>
+          <mesh position={[side * 0.15, 0.06, 0.1]} rotation={[0.6, 0, side * 0.3]} castShadow><capsuleGeometry args={[0.04, 0.16, 4, 8]} /><meshStandardMaterial color="#388e3c" roughness={0.7} /></mesh>
+          <mesh position={[side * 0.2, 0.02, 0.22]} rotation={[-0.3, 0, side * 0.2]}><capsuleGeometry args={[0.03, 0.12, 4, 8]} /><meshStandardMaterial color="#43a047" roughness={0.7} /></mesh>
+          <mesh position={[side * 0.24, 0, 0.3]}><sphereGeometry args={[0.05, 8, 6]} /><meshStandardMaterial color="#66bb6a" roughness={0.6} /></mesh>
         </group>
       ))}
       {/* Spots */}
@@ -279,8 +384,8 @@ function CM({ color, roughness = 0.25, metalness = 0.5, emissive, emissiveIntens
     transparent={transparent} opacity={opacity} clippingPlanes={cp} clipShadows />;
 }
 
-function Vehicle3D({ item, variant, laneGy, goingRight, totalRows }: {
-  item: GameObject; variant?: string; laneGy: number; goingRight: boolean; totalRows: number;
+function Vehicle3D({ item, itemIndex, rowIndex, variant, laneGy, goingRight, totalRows, laneItemsRef, showCollisionBoxes }: {
+  item: GameObject; itemIndex: number; rowIndex: number; variant?: string; laneGy: number; goingRight: boolean; totalRows: number; laneItemsRef: React.MutableRefObject<GameObject[][]>; showCollisionBoxes: boolean;
 }) {
   const v = variant || 'sedan';
   const [c1, c2] = VCOL[v] || VCOL.sedan;
@@ -292,9 +397,19 @@ function Vehicle3D({ item, variant, laneGy, goingRight, totalRows }: {
   const angle = goingRight ? 0 : Math.PI;
   const bodyH = v === 'sports' ? 0.12 : v === 'truck' ? 0.22 : v === 'bus' ? 0.28 : 0.14;
   const cabH = v === 'sports' ? 0.06 : v === 'truck' ? 0 : v === 'bus' ? 0 : 0.12;
+  const groupRef = useRef<THREE.Group>(null);
+
+  useFrame(() => {
+    if (!groupRef.current) return;
+    const runtimeItem = laneItemsRef.current[rowIndex]?.[itemIndex];
+    if (!runtimeItem) return;
+    groupRef.current.position.set(toX(runtimeItem.x + runtimeItem.width / 2), y, pz);
+    groupRef.current.rotation.y = angle;
+  });
 
   return (
-    <group position={[px, y, pz]} rotation={[0, angle, 0]}>
+    <group ref={groupRef} position={[px, y, pz]} rotation={[0, angle, 0]}>
+      {showCollisionBoxes && <DebugBox size={[w * 0.98, bodyH + (cabH > 0 ? cabH : 0.08) + 0.18, d * 0.98]} color="#f59e0b" />}
       <mesh position={[0, bodyH / 2, 0]} castShadow><boxGeometry args={[w * 0.93, bodyH, d]} /><CM color={c1} /></mesh>
       {v === 'truck' && <>
         <mesh position={[-w * 0.1, bodyH + 0.1, 0]} castShadow><boxGeometry args={[w * 0.55, 0.2, d * 0.88]} /><CM color={c2} roughness={0.4} metalness={0.3} /></mesh>
@@ -331,11 +446,19 @@ function Vehicle3D({ item, variant, laneGy, goingRight, totalRows }: {
 }
 
 /* ═══════════════ LOG (clipped) ═══════════════ */
-function Log3D({ item, variant, laneGy, totalRows }: { item: GameObject; variant?: string; laneGy: number; totalRows: number }) {
+function Log3D({ item, itemIndex, rowIndex, variant, laneGy, totalRows, laneItemsRef, showCollisionBoxes }: { item: GameObject; itemIndex: number; rowIndex: number; variant?: string; laneGy: number; totalRows: number; laneItemsRef: React.MutableRefObject<GameObject[][]>; showCollisionBoxes: boolean }) {
   const cp = useClip();
   const w = item.width * S;
   const px = toX(item.x + item.width / 2);
   const pz = toZ(laneGy + CS / 2, totalRows);
+  const groupRef = useRef<THREE.Group>(null);
+
+  useFrame(() => {
+    if (!groupRef.current) return;
+    const runtimeItem = laneItemsRef.current[rowIndex]?.[itemIndex];
+    if (!runtimeItem) return;
+    groupRef.current.position.set(toX(runtimeItem.x + runtimeItem.width / 2), 0.04, pz);
+  });
 
   if (variant === 'turtle') {
     const count = Math.floor(item.width / CS);
@@ -345,6 +468,7 @@ function Log3D({ item, variant, laneGy, totalRows }: { item: GameObject; variant
           const tx = toX(item.x + i * CS + CS / 2);
           return (
             <group key={i} position={[tx, 0.02, pz]}>
+              {showCollisionBoxes && <DebugBox size={[0.72, 0.42, 0.72]} color="#38bdf8" />}
               <mesh castShadow><sphereGeometry args={[0.32, 12, 8, 0, Math.PI * 2, 0, Math.PI * 0.55]} /><meshStandardMaterial color="#43a047" roughness={0.55} metalness={0.1} clippingPlanes={cp} clipShadows /></mesh>
               <mesh position={[0, -0.02, 0]} rotation={[-Math.PI / 2, 0, 0]}><circleGeometry args={[0.3, 10]} /><meshStandardMaterial color="#8d6e63" roughness={0.9} side={THREE.DoubleSide} clippingPlanes={cp} clipShadows /></mesh>
               <mesh position={[0, 0.06, -0.35]} castShadow><sphereGeometry args={[0.1, 10, 8]} /><meshStandardMaterial color="#81c784" roughness={0.6} clippingPlanes={cp} clipShadows /></mesh>
@@ -361,7 +485,8 @@ function Log3D({ item, variant, laneGy, totalRows }: { item: GameObject; variant
   }
 
   return (
-    <group position={[px, 0.04, pz]}>
+    <group ref={groupRef} position={[px, 0.04, pz]}>
+      {showCollisionBoxes && <DebugBox size={[w * 0.98, 0.55, 0.56]} color="#38bdf8" />}
       <mesh rotation={[0, 0, Math.PI / 2]} castShadow><cylinderGeometry args={[0.24, 0.28, w * 0.95, 14]} /><meshStandardMaterial color="#795548" roughness={0.85} clippingPlanes={cp} clipShadows /></mesh>
       {[-1, 1].map(side => (
         <mesh key={side} position={[side * w * 0.475, 0, 0]} rotation={[0, 0, Math.PI / 2]}><cylinderGeometry args={[0.22, 0.22, 0.03, 12]} /><meshStandardMaterial color="#5d4037" roughness={0.9} clippingPlanes={cp} clipShadows /></mesh>
@@ -372,27 +497,28 @@ function Log3D({ item, variant, laneGy, totalRows }: { item: GameObject; variant
 }
 
 /* ═══════════════ LILY PAD ═══════════════ */
-function LilyPad3D({ col, gy, reached, totalRows }: { col: number; gy: number; reached: boolean; totalRows: number }) {
+function LilyPad3D({ col, gy, reached, totalRows, showCollisionBoxes, reducedMotion }: { col: number; gy: number; reached: boolean; totalRows: number; showCollisionBoxes: boolean; reducedMotion: boolean }) {
   const ref = useRef<THREE.Group>(null);
   const px = toX(col * CS + CS / 2);
   const pz = toZ(gy + CS / 2, totalRows);
   useFrame(({ clock }) => {
     if (!ref.current) return;
-    ref.current.position.y = 0.01 + Math.sin(clock.getElapsedTime() * 1.2 + col) * 0.015;
+    ref.current.position.y = reducedMotion ? 0.01 : 0.01 + Math.sin(clock.getElapsedTime() * 1.2 + col) * 0.015;
   });
   return (
     <group ref={ref} position={[px, 0.01, pz]}>
+      {showCollisionBoxes && <DebugBox size={[0.9, 0.12, 0.9]} color="#84cc16" />}
       <mesh rotation={[-Math.PI / 2, 0, col * 0.5]}><circleGeometry args={[0.38, 24]} /><meshStandardMaterial color="#2e7d32" roughness={0.6} side={THREE.DoubleSide} /></mesh>
       <mesh position={[0, 0.005, 0]} rotation={[-Math.PI / 2, 0, col * 0.5]}><ringGeometry args={[0.05, 0.28, 16]} /><meshStandardMaterial color="#43a047" roughness={0.6} side={THREE.DoubleSide} /></mesh>
-      {!reached && <Flower3D />}
+      {!reached && <Flower3D reducedMotion={reducedMotion} />}
       {reached && <MiniFrog3D />}
     </group>
   );
 }
 
-function Flower3D() {
+function Flower3D({ reducedMotion }: { reducedMotion: boolean }) {
   const ref = useRef<THREE.Group>(null);
-  useFrame(({ clock }) => { if (ref.current) ref.current.rotation.y = clock.getElapsedTime() * 0.4; });
+  useFrame(({ clock }) => { if (ref.current) ref.current.rotation.y = reducedMotion ? 0 : clock.getElapsedTime() * 0.4; });
   return (
     <group ref={ref} position={[0.18, 0.06, -0.12]}>
       {[0, 72, 144, 216, 288].map((a, i) => (
@@ -420,9 +546,153 @@ function MiniFrog3D() {
   );
 }
 
+function BonusPickup3D({ item, totalRows, reducedMotion }: { item: BonusItem; totalRows: number; reducedMotion: boolean }) {
+  const ref = useRef<THREE.Group>(null);
+  const px = toX(item.x + CS / 2);
+  const pz = toZ(item.y + CS / 2, totalRows);
+  const isSlowTime = item.kind === 'slowTime';
+  const isCurrentAnchor = item.kind === 'currentAnchor';
+  const isSuperHop = item.kind === 'superHop';
+  const isFly = item.kind === 'fly';
+  const mainColor = isSlowTime ? '#60a5fa' : isCurrentAnchor ? '#14b8a6' : isSuperHop ? '#f59e0b' : isFly ? '#facc15' : '#fbbf24';
+  const emissiveColor = isSlowTime ? '#3b82f6' : isCurrentAnchor ? '#0f766e' : isSuperHop ? '#ea580c' : isFly ? '#ca8a04' : '#f59e0b';
+  const ringColor = isSlowTime ? '#bfdbfe' : isCurrentAnchor ? '#99f6e4' : isSuperHop ? '#fde68a' : isFly ? '#fef08a' : '#fde68a';
+
+  useFrame(({ clock }) => {
+    if (!ref.current) return;
+    const t = clock.getElapsedTime();
+    ref.current.rotation.y = reducedMotion ? 0 : t * 1.8;
+    ref.current.position.y = 0.18 + (reducedMotion ? 0 : Math.sin(t * 2.2) * 0.04);
+  });
+
+  return (
+    <group ref={ref} position={[px, 0.18, pz]}>
+      {isSlowTime ? (
+        <>
+          <mesh castShadow>
+            <sphereGeometry args={[0.11, 14, 10]} />
+            <meshStandardMaterial color={mainColor} emissive={emissiveColor} emissiveIntensity={0.75} roughness={0.25} metalness={0.25} />
+          </mesh>
+          <mesh position={[0, 0.03, 0]}>
+            <torusGeometry args={[0.18, 0.02, 10, 24]} />
+            <meshStandardMaterial color={ringColor} emissive={emissiveColor} emissiveIntensity={0.45} transparent opacity={0.9} side={THREE.DoubleSide} />
+          </mesh>
+          <mesh position={[0, 0.03, 0]}>
+            <boxGeometry args={[0.015, 0.1, 0.015]} />
+            <meshStandardMaterial color="#eff6ff" emissive="#eff6ff" emissiveIntensity={0.4} />
+          </mesh>
+          <mesh position={[0.05, 0.03, 0]}>
+            <boxGeometry args={[0.08, 0.015, 0.015]} />
+            <meshStandardMaterial color="#eff6ff" emissive="#eff6ff" emissiveIntensity={0.4} />
+          </mesh>
+          <pointLight color={mainColor} intensity={0.8} distance={1.9} />
+        </>
+      ) : isCurrentAnchor ? (
+        <>
+          <mesh castShadow>
+            <boxGeometry args={[0.11, 0.12, 0.03]} />
+            <meshStandardMaterial color={mainColor} emissive={emissiveColor} emissiveIntensity={0.8} roughness={0.3} metalness={0.18} />
+          </mesh>
+          <mesh position={[0, -0.11, 0]}>
+            <torusGeometry args={[0.1, 0.02, 10, 18, Math.PI]} />
+            <meshStandardMaterial color={ringColor} emissive={emissiveColor} emissiveIntensity={0.45} transparent opacity={0.9} side={THREE.DoubleSide} />
+          </mesh>
+          <mesh position={[0, -0.02, 0]}>
+            <cylinderGeometry args={[0.018, 0.018, 0.18, 10]} />
+            <meshStandardMaterial color={ringColor} emissive={emissiveColor} emissiveIntensity={0.5} />
+          </mesh>
+          <pointLight color={mainColor} intensity={0.75} distance={1.8} />
+        </>
+      ) : isSuperHop ? (
+        <>
+          <mesh castShadow>
+            <coneGeometry args={[0.1, 0.16, 10]} />
+            <meshStandardMaterial color={mainColor} emissive={emissiveColor} emissiveIntensity={1} roughness={0.3} metalness={0.16} />
+          </mesh>
+          <mesh position={[0, 0.12, 0]} rotation={[Math.PI, 0, 0]}>
+            <coneGeometry args={[0.08, 0.14, 10]} />
+            <meshStandardMaterial color={ringColor} emissive={emissiveColor} emissiveIntensity={0.8} roughness={0.3} metalness={0.16} />
+          </mesh>
+          <mesh position={[0, -0.1, 0]}>
+            <torusGeometry args={[0.14, 0.02, 8, 18]} />
+            <meshStandardMaterial color={ringColor} emissive={emissiveColor} emissiveIntensity={0.4} transparent opacity={0.85} side={THREE.DoubleSide} />
+          </mesh>
+          <pointLight color={mainColor} intensity={0.85} distance={2} />
+        </>
+      ) : isFly ? (
+        <>
+          <mesh castShadow>
+            <sphereGeometry args={[0.1, 12, 10]} />
+            <meshStandardMaterial color={mainColor} emissive={emissiveColor} emissiveIntensity={0.95} roughness={0.3} metalness={0.12} />
+          </mesh>
+          <mesh position={[-0.12, 0.03, 0.04]} rotation={[0, 0.2, -0.3]}>
+            <boxGeometry args={[0.12, 0.02, 0.16]} />
+            <meshStandardMaterial color={ringColor} emissive={emissiveColor} emissiveIntensity={0.55} transparent opacity={0.8} />
+          </mesh>
+          <mesh position={[0.12, 0.03, -0.04]} rotation={[0, -0.2, 0.3]}>
+            <boxGeometry args={[0.12, 0.02, 0.16]} />
+            <meshStandardMaterial color={ringColor} emissive={emissiveColor} emissiveIntensity={0.55} transparent opacity={0.8} />
+          </mesh>
+          <mesh position={[0, -0.1, 0]}>
+            <torusGeometry args={[0.13, 0.018, 8, 18]} />
+            <meshStandardMaterial color={ringColor} emissive={emissiveColor} emissiveIntensity={0.35} transparent opacity={0.85} side={THREE.DoubleSide} />
+          </mesh>
+          <pointLight color={mainColor} intensity={0.85} distance={2} />
+        </>
+      ) : (
+        <>
+          <mesh castShadow>
+            <icosahedronGeometry args={[0.12, 0]} />
+            <meshStandardMaterial color={mainColor} emissive={emissiveColor} emissiveIntensity={0.9} roughness={0.35} metalness={0.2} />
+          </mesh>
+          <mesh position={[0, -0.02, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+            <ringGeometry args={[0.16, 0.26, 24]} />
+            <meshStandardMaterial color={ringColor} emissive={emissiveColor} emissiveIntensity={0.25} transparent opacity={0.8} side={THREE.DoubleSide} />
+          </mesh>
+          <pointLight color={mainColor} intensity={0.7} distance={1.8} />
+        </>
+      )}
+    </group>
+  );
+}
+
+function RainOverlay({ totalRows, reducedMotion }: { totalRows: number; reducedMotion: boolean }) {
+  const drops = useMemo(() => {
+    const rng = (s: number) => { let v = s; return () => { v = (v * 9301 + 49297) % 233280; return v / 233280; }; };
+    const rand = rng(44);
+    return Array.from({ length: 28 }).map(() => ({
+      x: (rand() - 0.5) * (W + 1.8),
+      z: (rand() - 0.5) * (totalRows + 1.8),
+      speed: 0.5 + rand() * 0.7,
+      length: 0.12 + rand() * 0.2,
+    }));
+  }, [totalRows]);
+
+  const groupRef = useRef<THREE.Group>(null);
+  useFrame(({ clock }) => {
+    if (!groupRef.current) return;
+    const t = clock.getElapsedTime();
+    groupRef.current.children.forEach((child, i) => {
+      const drop = drops[i];
+      if (!drop) return;
+      child.position.y = 2.8 - ((t * drop.speed) % 3.3);
+    });
+  });
+
+  return (
+    <group ref={groupRef} position={[0, 0, 0]}>
+      {drops.map((drop, i) => (
+        <mesh key={i} position={[drop.x, 2.8, drop.z]} rotation={[-0.3, 0, 0]}>
+          <boxGeometry args={[0.01, drop.length, 0.01]} />
+          <meshBasicMaterial color="#cbd5e1" transparent opacity={reducedMotion ? 0.08 : 0.18} />
+        </mesh>
+      ))}
+    </group>
+  );
+}
+
 /* ═══════════════ DEATH PARTICLES ═══════════════ */
-function DeathParticles({ fgx, fgz, isSplash, laneType }: { fgx: number; fgz: number; isSplash: boolean; laneType: string }) {
-  const baseY = laneType === 'river' ? 0.1 : laneY(laneType) + 0.1;
+function DeathParticles({ frogRef, isSplash, totalRows, reducedMotion }: { frogRef: React.MutableRefObject<FrogState>; isSplash: boolean; totalRows: number; reducedMotion: boolean }) {
   const particles = useMemo(() =>
     Array.from({ length: 16 }).map((_, i) => ({
       angle: (i / 16) * Math.PI * 2, speed: 0.015 + Math.random() * 0.01,
@@ -432,8 +702,14 @@ function DeathParticles({ fgx, fgz, isSplash, laneType }: { fgx: number; fgz: nu
   const timeRef = useRef(0);
   useFrame((_, delta) => {
     if (!groupRef.current) return;
+    const frog = frogRef.current;
     timeRef.current += delta;
-    const t = timeRef.current;
+    const t = reducedMotion ? 0 : timeRef.current;
+    groupRef.current.position.set(
+      toX(frog.pos.x + CS / 2),
+      0.1,
+      toZ(frog.pos.y + CS / 2, totalRows),
+    );
     groupRef.current.children.forEach((child, i) => {
       const p = particles[i]; if (!p) return;
       child.position.x = Math.cos(p.angle) * p.speed * t * 40;
@@ -443,7 +719,7 @@ function DeathParticles({ fgx, fgz, isSplash, laneType }: { fgx: number; fgz: nu
     });
   });
   return (
-    <group ref={groupRef} position={[fgx, baseY, fgz]}>
+    <group ref={groupRef} position={[toX(frogRef.current.pos.x + CS / 2), 0.1, toZ(frogRef.current.pos.y + CS / 2, totalRows)]}>
       {particles.map((p, i) => (
         <mesh key={i}><sphereGeometry args={[p.size, 6, 6]} /><meshStandardMaterial
           color={isSplash ? '#64b5f6' : '#ff8a65'} emissive={isSplash ? '#2196f3' : '#ff5722'}
@@ -454,55 +730,62 @@ function DeathParticles({ fgx, fgz, isSplash, laneType }: { fgx: number; fgz: nu
 }
 
 /* ═══════════════ SCENE EXPORT ═══════════════ */
-export function GameScene({ frog, gameState, laneItems, deathAnimation, showSplash, laneConfigs, totalRows }: {
-  frog: { pos: { x: number; y: number }; direction: Direction; isHopping: boolean; alive: boolean };
+export function GameScene({ frogRef, gameState, laneItems, laneItemsRef, levelModifiers = [], bonusItems, shieldActive, slowTimeActive, currentAnchorActive, superHopActive, deathAnimation, showSplash, laneConfigs, totalRows, showCollisionBoxes = false, reducedMotion = false }: {
+  frogRef: React.MutableRefObject<FrogState>;
   gameState: { goalsReached: boolean[] };
   laneItems: GameObject[][];
+  laneItemsRef: React.MutableRefObject<GameObject[][]>;
+  levelModifiers?: LevelModifier[];
+  bonusItems: BonusItem[];
+  shieldActive: boolean;
+  slowTimeActive: boolean;
+  currentAnchorActive: boolean;
+  superHopActive: boolean;
   deathAnimation: boolean;
   showSplash: boolean;
   laneConfigs: LaneConfig[];
   totalRows: number;
+  showCollisionBoxes?: boolean;
+  reducedMotion?: boolean;
 }) {
   const clipPlanes = useMemo(() => makeClipPlanes(totalRows), [totalRows]);
+  const modifierSet = useMemo(() => new Set(levelModifiers), [levelModifiers]);
+  const isNightTraffic = modifierSet.has('nightTraffic');
+  const isRain = modifierSet.has('rain');
   const goalRow = useMemo(() => {
     const idx = laneConfigs.findIndex(l => l.type === 'goal');
     return idx >= 0 ? (totalRows - 1 - idx) * CS : -1;
   }, [laneConfigs, totalRows]);
 
-  const frogWorldX = toX(frog.pos.x + CS / 2);
-  const frogWorldZ = toZ(frog.pos.y + CS / 2, totalRows);
-
-  // Determine frog's current lane type
-  const frogRow = totalRows - 1 - Math.round(frog.pos.y / CS);
-  const frogLaneType = laneConfigs[Math.max(0, Math.min(frogRow, laneConfigs.length - 1))]?.type ?? 'safe';
-
   return (
     <ClipContext.Provider value={clipPlanes}>
-      <CameraFollow frogZ={frogWorldZ} totalRows={totalRows} />
+      <CameraFollow frogRef={frogRef} totalRows={totalRows} />
 
       {/* Lighting */}
-      <ambientLight intensity={0.4} />
-      <directionalLight position={[8, 12, -6]} intensity={1.3} castShadow
+      <ambientLight intensity={isNightTraffic || isRain ? 0.25 : 0.4} />
+      <directionalLight position={[8, 12, -6]} intensity={isNightTraffic ? 0.9 : 1.3} castShadow
         shadow-mapSize-width={2048} shadow-mapSize-height={2048}
         shadow-camera-left={-10} shadow-camera-right={10}
         shadow-camera-top={12} shadow-camera-bottom={-12}
         shadow-camera-near={0.5} shadow-camera-far={40} shadow-bias={-0.001} />
-      <directionalLight position={[-5, 8, 8]} intensity={0.35} color="#bbdefb" />
+      <directionalLight position={[-5, 8, 8]} intensity={isNightTraffic ? 0.25 : 0.35} color="#bbdefb" />
       <hemisphereLight args={['#87CEEB', '#33691e', 0.3]} />
+
+      {isRain && <RainOverlay totalRows={totalRows} reducedMotion={reducedMotion} />}
 
       <BackgroundFill />
 
-      <mesh position={[0, -0.2, 0]} receiveShadow>
-        <boxGeometry args={[W + 0.5, 0.3, totalRows + 0.5]} />
+      <mesh position={[0, BOARD_PLINTH_Y, 0]} receiveShadow>
+        <boxGeometry args={[W + BOARD_PLINTH_MARGIN, BOARD_PLINTH_HEIGHT, totalRows + BOARD_PLINTH_MARGIN]} />
         <meshStandardMaterial color="#1a472a" roughness={0.9} />
       </mesh>
 
-      <WaterPlane totalRows={totalRows} />
+      <WaterPlane totalRows={totalRows} reducedMotion={reducedMotion} />
       <LaneTiles lanes={laneConfigs} totalRows={totalRows} />
 
       {/* Lily pads */}
       {goalRow >= 0 && LILY_PAD_POSITIONS.map((col, i) => (
-        <LilyPad3D key={i} col={col} gy={goalRow} reached={gameState.goalsReached[i]} totalRows={totalRows} />
+        <LilyPad3D key={i} col={col} gy={goalRow} reached={gameState.goalsReached[i]} totalRows={totalRows} showCollisionBoxes={showCollisionBoxes} reducedMotion={reducedMotion} />
       ))}
 
       {/* Lane items */}
@@ -511,21 +794,24 @@ export function GameScene({ frog, gameState, laneItems, deathAnimation, showSpla
         const gy = (totalRows - 1 - idx) * CS;
         return items.map((item, j) => {
           if (lane.type === 'road')
-            return <Vehicle3D key={`v${idx}-${j}`} item={item} variant={item.variant} laneGy={gy} goingRight={lane.speed > 0} totalRows={totalRows} />;
+            return <Vehicle3D key={`v${idx}-${j}`} item={item} itemIndex={j} rowIndex={idx} variant={item.variant} laneGy={gy} goingRight={lane.speed > 0} totalRows={totalRows} laneItemsRef={laneItemsRef} showCollisionBoxes={showCollisionBoxes} />;
           if (lane.type === 'river')
-            return <Log3D key={`l${idx}-${j}`} item={item} variant={item.variant} laneGy={gy} totalRows={totalRows} />;
+            return <Log3D key={`l${idx}-${j}`} item={item} itemIndex={j} rowIndex={idx} variant={item.variant} laneGy={gy} totalRows={totalRows} laneItemsRef={laneItemsRef} showCollisionBoxes={showCollisionBoxes} />;
           return null;
         });
       })}
 
+      {/* Bonus pickups */}
+      {bonusItems.map((item, i) => (
+        !item.collected && <BonusPickup3D key={`b${i}`} item={item} totalRows={totalRows} reducedMotion={reducedMotion} />
+      ))}
+
       {/* Frog */}
-      <Frog3D frogX={frogWorldX} frogZ={frogWorldZ}
-        direction={frog.direction} isHopping={frog.isHopping} alive={frog.alive}
-        laneType={frogLaneType} />
+      <Frog3D frogRef={frogRef} laneConfigs={laneConfigs} totalRows={totalRows} showCollisionBoxes={showCollisionBoxes} reducedMotion={reducedMotion} shieldActive={shieldActive} slowTimeActive={slowTimeActive} currentAnchorActive={currentAnchorActive} superHopActive={superHopActive} />
 
       {/* Death particles */}
-      {deathAnimation && !frog.alive && (
-        <DeathParticles fgx={frogWorldX} fgz={frogWorldZ} isSplash={showSplash} laneType={frogLaneType} />
+      {deathAnimation && !frogRef.current.alive && (
+        <DeathParticles frogRef={frogRef} isSplash={showSplash} totalRows={totalRows} reducedMotion={reducedMotion} />
       )}
     </ClipContext.Provider>
   );

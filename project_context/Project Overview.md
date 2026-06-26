@@ -16,6 +16,11 @@ Related code:
 
 - [Game state and loop](../src/useGame.ts)
 - [Game constants and levels](../src/gameConstants.ts)
+- [Viewport fitting math](../src/viewMath.ts)
+- [Gameplay metrics](../src/gameMetrics.ts)
+- [Gameplay metrics storage](../src/gameMetricsStorage.ts)
+- [Replay capture and QA playback](../src/gameReplay.ts)
+- [Challenge session and reward flow](../src/gameChallenge.ts)
 - [R3F scene](../src/Scene.tsx)
 
 Related docs:
@@ -31,7 +36,10 @@ Related docs:
 - Add unit test coverage without Playwright when browser tests are forbidden.
 - Improve responsive HUD and camera fit.
 - Add developer mode for faster QA.
-- Keep Obsidian context and project docs linked during implementation.
+- Add deterministic replay and seed-log support for bug reproduction.
+- Expand visible reward objectives with additional challenge modes and meta rewards.
+- Keep challenge-session reward logic in a dedicated helper module rather than inside the main hook.
+- Keep Obsidian context and project docs linked during implementation, with `project_context` treated as the canonical memory store and metrics persistence handled by a separate sink module.
 
 ## Non-Goals Unless Explicitly Requested
 

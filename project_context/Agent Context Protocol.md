@@ -26,6 +26,7 @@ Agents must keep Obsidian links current while implementing:
 - Add or update wiki links between related context notes.
 - Add markdown links to source files when documentation mentions concrete code.
 - Add markdown links to `project_context` documents when context decisions depend on them.
+- Treat `project_context/.obsidian` as vault configuration and keep it intact unless the task explicitly targets vault settings.
 - When a new module is introduced, add it to [[Architecture Map]] if it affects game flow, state, rendering, input, audio, storage, testing, or developer mode.
 - When a decision changes project direction, add a short entry to [[Context Changelog]].
 
@@ -37,6 +38,11 @@ Documentation must not describe code anonymously when a concrete file exists. Pr
 - [R3F scene](../src/Scene.tsx)
 - [App shell](../src/App.tsx)
 - [Game constants and levels](../src/gameConstants.ts)
+- [Viewport fitting math](../src/viewMath.ts)
+- [Gameplay metrics](../src/gameMetrics.ts)
+- [Gameplay metrics storage](../src/gameMetricsStorage.ts)
+- [Replay capture and QA playback](../src/gameReplay.ts)
+- [Challenge session and reward flow](../src/gameChallenge.ts)
 - [Audio system](../src/audio.ts)
 
 When referencing a function or concept, include both the code file and the context note that explains the decision, if one exists.

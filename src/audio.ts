@@ -22,6 +22,14 @@ function getCtx() {
   return ctx;
 }
 
+function disconnectNode(node: AudioNode | null | undefined) {
+  try {
+    node?.disconnect();
+  } catch {
+    // Ignore already-disconnected nodes.
+  }
+}
+
 function playTone(freq: number, dur: number, type: OscillatorType = 'square', vol = 0.15, delay = 0) {
   const c = getCtx();
   const osc = c.createOscillator();
@@ -33,6 +41,10 @@ function playTone(freq: number, dur: number, type: OscillatorType = 'square', vo
   g.gain.exponentialRampToValueAtTime(0.001, c.currentTime + delay + dur);
   osc.connect(g);
   g.connect(masterGain!);
+  osc.onended = () => {
+    disconnectNode(osc);
+    disconnectNode(g);
+  };
   osc.start(c.currentTime + delay);
   osc.stop(c.currentTime + delay + dur + 0.05);
 }
@@ -54,6 +66,11 @@ function playNoise(dur: number, vol = 0.1, delay = 0) {
   src.connect(filt);
   filt.connect(g);
   g.connect(masterGain!);
+  src.onended = () => {
+    disconnectNode(src);
+    disconnectNode(filt);
+    disconnectNode(g);
+  };
   src.start(c.currentTime + delay);
 }
 
@@ -175,6 +192,10 @@ export function stopMusic() {
   try { musicLfo?.stop(); } catch {}
   try { musicOsc1?.stop(); } catch {}
   try { musicOsc2?.stop(); } catch {}
+  disconnectNode(ambientOsc);
+  disconnectNode(musicLfo);
+  disconnectNode(musicOsc1);
+  disconnectNode(musicOsc2);
   ambientOsc = null; musicLfo = null; musicOsc1 = null; musicOsc2 = null;
 }
 
