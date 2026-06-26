@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
+  clampCameraCenterToWorldBounds,
+  clampGroundCameraCenterToScreenEdges,
   computeBoardScreenSpanZoom,
   computeGroundCameraOffsetForScreenY,
   computeOrthographicZoom,
@@ -39,5 +41,52 @@ describe('view math', () => {
     expect(offset).toBeCloseTo((844 / 6) / (45 * 0.8), 6);
     expect(computeGroundCameraOffsetForScreenY(844, 45, 0.5, 0.8)).toBe(0);
     expect(computeGroundCameraOffsetForScreenY(0, 45, 2 / 3, 0.8)).toBe(0);
+  });
+
+  it('clamps horizontal camera movement to the board edges', () => {
+    const viewportSpan = 390 / 45;
+    const left = clampCameraCenterToWorldBounds(-20, viewportSpan, -6.75, 6.75);
+    const right = clampCameraCenterToWorldBounds(20, viewportSpan, -6.75, 6.75);
+
+    expect(left - viewportSpan / 2).toBeCloseTo(-6.75, 6);
+    expect(right + viewportSpan / 2).toBeCloseTo(6.75, 6);
+    expect(clampCameraCenterToWorldBounds(4, 20, -6.75, 6.75)).toBe(0);
+  });
+
+  it('clamps vertical look-ahead to the visible board edges', () => {
+    const viewportHeight = 844;
+    const zoom = 45;
+    const projection = 0.8;
+    const worldMin = -7.75;
+    const worldMax = 7.75;
+    const topScreenY = 0.08;
+    const bottomScreenY = 2 / 3;
+    const upperCenter = clampGroundCameraCenterToScreenEdges(
+      -20,
+      viewportHeight,
+      zoom,
+      projection,
+      worldMin,
+      worldMax,
+      topScreenY,
+      bottomScreenY,
+    );
+    const lowerCenter = clampGroundCameraCenterToScreenEdges(
+      20,
+      viewportHeight,
+      zoom,
+      projection,
+      worldMin,
+      worldMax,
+      topScreenY,
+      bottomScreenY,
+    );
+    const topEdgePixel = viewportHeight / 2
+      + projection * (worldMin - upperCenter) * zoom;
+    const bottomEdgePixel = viewportHeight / 2
+      + projection * (worldMax - lowerCenter) * zoom;
+
+    expect(topEdgePixel).toBeCloseTo(viewportHeight * topScreenY, 6);
+    expect(bottomEdgePixel).toBeCloseTo(viewportHeight * bottomScreenY, 6);
   });
 });

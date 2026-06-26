@@ -8,6 +8,8 @@ import {
 import type { GameObject } from './gameConstants';
 import type { BonusItem, FrogState } from './gameCore';
 import {
+  clampCameraCenterToWorldBounds,
+  clampGroundCameraCenterToScreenEdges,
   computeBoardScreenSpanZoom,
   computeGroundCameraOffsetForScreenY,
   isMobileCameraViewport,
@@ -50,6 +52,8 @@ const MOBILE_CAMERA_DEAD_ZONE = 0.04;
 const MOBILE_BOARD_SCREEN_WIDTHS = 1.5;
 const MOBILE_UP_SCREEN_Y = 2 / 3;
 const MOBILE_DOWN_SCREEN_Y = 0.5;
+const MOBILE_TOP_EDGE_SCREEN_Y = 0.08;
+const MOBILE_BOTTOM_EDGE_SCREEN_Y = 2 / 3;
 const MOBILE_GROUND_VERTICAL_PROJECTION = CAMERA_BASE_Y / Math.hypot(CAMERA_BASE_Y, CAMERA_BASE_Z);
 const CAMERA_SIDE_SAFE_X_DESKTOP = 0.2;
 const CAMERA_BOTTOM_SAFE_Z_DESKTOP = 0.75;
@@ -162,14 +166,30 @@ function CameraFollow({ frogRef, totalRows }: { frogRef: React.MutableRefObject<
       targetZ.current += (softenedTargetZ - targetZ.current) * followAlpha;
     }
 
-    const maxShiftX = mobile
-      ? BOARD_WIDTH * S / 2
-      : Math.max(0.8, BOARD_WIDTH * S * 0.16);
-    const maxShiftZ = mobile
-      ? Math.max(1.2, totalRows / 2 - 0.5 + Math.abs(mobileGroundOffset))
-      : Math.max(1.2, (totalRows - 11) / 2 * 0.6);
-    const clampedX = Math.max(-maxShiftX, Math.min(maxShiftX, targetX.current));
-    const clampedZ = Math.max(-maxShiftZ, Math.min(maxShiftZ, targetZ.current));
+    const boardHalfWidth = (W + BOARD_PLINTH_MARGIN) / 2;
+    const boardHalfDepth = (totalRows + BOARD_PLINTH_MARGIN) / 2;
+    const desktopMaxShiftX = Math.max(0.8, BOARD_WIDTH * S * 0.16);
+    const desktopMaxShiftZ = Math.max(1.2, (totalRows - 11) / 2 * 0.6);
+    const clampedX = mobile
+      ? clampCameraCenterToWorldBounds(
+          targetX.current,
+          size.width / targetZoom,
+          -boardHalfWidth,
+          boardHalfWidth,
+        )
+      : Math.max(-desktopMaxShiftX, Math.min(desktopMaxShiftX, targetX.current));
+    const clampedZ = mobile
+      ? clampGroundCameraCenterToScreenEdges(
+          targetZ.current,
+          size.height,
+          targetZoom,
+          MOBILE_GROUND_VERTICAL_PROJECTION,
+          -boardHalfDepth,
+          boardHalfDepth,
+          MOBILE_TOP_EDGE_SCREEN_Y,
+          MOBILE_BOTTOM_EDGE_SCREEN_Y,
+        )
+      : Math.max(-desktopMaxShiftZ, Math.min(desktopMaxShiftZ, targetZ.current));
     const targetBaseX = mobile ? 0 : CAMERA_BASE_X;
     const desiredCameraX = targetBaseX + clampedX;
     const desiredCameraZ = CAMERA_BASE_Z + clampedZ;

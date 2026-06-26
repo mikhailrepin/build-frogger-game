@@ -6,6 +6,27 @@ updated: 2026-06-26
 
 # Context Changelog
 
+## 1.26.15 - 2026-06-27
+
+Changed files and notes:
+
+- [Scene.tsx](../src/Scene.tsx)
+- [viewMath.ts](../src/viewMath.ts)
+- [viewMath.test.ts](../src/viewMath.test.ts)
+- [Architecture Map](Architecture%20Map.md)
+- [Art Direction Sheet](Art%20Direction%20Sheet.md)
+
+Reason:
+
+- Unbounded mobile follow could move the projected board away from viewport edges and reveal large empty areas beside or below the level.
+- Directional look-ahead needed to yield to the actual start and goal boundaries.
+
+Implementation impact:
+
+- Horizontal mobile follow stops when the viewport edge reaches the board plinth edge.
+- Vertical mobile follow keeps the lower board edge at or below the lower-third line and the upper edge within the HUD boundary before applying further direction-based movement.
+- Pure viewport-bound helpers cover side clamps, top/bottom clamps, and undersized-world fallback behavior.
+
 ## 1.26.14 - 2026-06-27
 
 Changed files and notes:

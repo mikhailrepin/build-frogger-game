@@ -52,6 +52,62 @@ export function computeGroundCameraOffsetForScreenY(
   return pixelOffsetFromCenter / (zoom * groundVerticalProjection);
 }
 
+export function clampCameraCenterToWorldBounds(
+  desiredCenter: number,
+  viewportSpan: number,
+  worldMin: number,
+  worldMax: number,
+) {
+  if (
+    viewportSpan <= 0
+    || worldMax <= worldMin
+    || !Number.isFinite(desiredCenter)
+  ) {
+    return desiredCenter;
+  }
+
+  const worldCenter = (worldMin + worldMax) / 2;
+  if (viewportSpan >= worldMax - worldMin) return worldCenter;
+
+  return clamp(
+    desiredCenter,
+    worldMin + viewportSpan / 2,
+    worldMax - viewportSpan / 2,
+  );
+}
+
+export function clampGroundCameraCenterToScreenEdges(
+  desiredCenter: number,
+  viewportHeight: number,
+  zoom: number,
+  groundVerticalProjection: number,
+  worldMin: number,
+  worldMax: number,
+  topScreenY: number,
+  bottomScreenY: number,
+) {
+  if (
+    viewportHeight <= 0
+    || zoom <= 0
+    || groundVerticalProjection <= 0
+    || worldMax <= worldMin
+    || !Number.isFinite(desiredCenter)
+  ) {
+    return desiredCenter;
+  }
+
+  const topPixel = clamp(topScreenY, 0, 1) * viewportHeight;
+  const bottomPixel = clamp(bottomScreenY, 0, 1) * viewportHeight;
+  if (topPixel > bottomPixel) return desiredCenter;
+
+  const groundScale = zoom * groundVerticalProjection;
+  const minCenter = worldMin + (viewportHeight / 2 - topPixel) / groundScale;
+  const maxCenter = worldMax - (bottomPixel - viewportHeight / 2) / groundScale;
+
+  if (minCenter > maxCenter) return (minCenter + maxCenter) / 2;
+  return clamp(desiredCenter, minCenter, maxCenter);
+}
+
 export function computeOrthographicZoom(
   viewportWidth: number,
   viewportHeight: number,
