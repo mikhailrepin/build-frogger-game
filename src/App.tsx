@@ -5,14 +5,12 @@ import {
   Bug,
   Play,
   Rabbit,
-  RotateCcw,
-  Skull,
-  Trophy,
 } from 'lucide-react';
 import * as THREE from 'three';
 import { useGame } from './useGame';
 import { GameScene } from './Scene';
 import { PauseOverlay } from './PauseOverlay';
+import { GameOverOverlay, LevelCompleteOverlay } from './EndStateOverlay';
 import type { Direction } from './gameConstants';
 import { CELL_SIZE } from './gameConstants';
 import { getRowFromY } from './gameCore';
@@ -148,6 +146,7 @@ export default function App() {
   const activeBonusMeta = activeBonus ? BONUS_HUD[activeBonus.kind] : null;
   const ActiveBonusIcon = activeBonusMeta?.Icon;
   const activeBonusText = activeBonus ? Math.max(0, activeBonus.remainingSeconds) : gameState.lives;
+  const overlayVisible = gameState.paused || gameState.gameOver || gameState.gameWon;
   const decreaseVolume = () => {
     setAudioSettingsState(adjustAudioVolume(-1));
   };
@@ -205,7 +204,7 @@ export default function App() {
       </div>
 
       <div
-        className={`pointer-events-none absolute left-0 right-0 top-0 z-20 flex justify-center transition-opacity ${gameState.paused ? 'invisible opacity-0' : 'visible opacity-100'}`}
+        className={`pointer-events-none absolute left-0 right-0 top-0 z-20 flex justify-center transition-opacity ${overlayVisible ? 'invisible opacity-0' : 'visible opacity-100'}`}
         style={{ paddingTop: 'max(10px, env(safe-area-inset-top))' }}
       >
         <div
@@ -257,7 +256,7 @@ export default function App() {
       </div>
 
       <div
-        className={`ui-font pointer-events-none absolute bottom-0 left-0 right-0 z-20 flex flex-col items-center transition-opacity ${gameState.paused ? 'invisible opacity-0' : 'visible opacity-100'}`}
+        className={`ui-font pointer-events-none absolute bottom-0 left-0 right-0 z-20 flex flex-col items-center transition-opacity ${overlayVisible ? 'invisible opacity-0' : 'visible opacity-100'}`}
         style={{ paddingBottom: 'max(14px, env(safe-area-inset-bottom))' }}
       >
         <ControlButton direction="up" onMove={(direction) => moveFrog(direction, 'touch')} className="mb-2" />
@@ -292,48 +291,19 @@ export default function App() {
       )}
 
       {gameState.gameOver && (
-        <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm">
-          <div className="animate-bounce-in space-y-4 text-center">
-            <div className="flex justify-center text-red-400 drop-shadow-[0_0_20px_rgba(248,113,113,0.55)]">
-              <Skull className="h-14 w-14" strokeWidth={2.6} />
-            </div>
-            <h2 className="font-mono text-5xl font-black tracking-normal text-red-300">GAME OVER</h2>
-            <div className="flex items-center justify-center gap-5 font-mono text-lg text-slate-300">
-              <span>Score: <span className="font-black text-amber-300">{gameState.score}</span></span>
-              <span className="text-slate-600">|</span>
-              <span>Best: <span className="font-black text-amber-200">{gameState.highScore}</span></span>
-            </div>
-            {gameState.score > 0 && gameState.score >= gameState.highScore && (
-              <p className="flex items-center justify-center gap-2 font-mono text-sm font-bold tracking-normal text-emerald-300">
-                <Trophy className="h-4 w-4" strokeWidth={2.6} />
-                NEW HIGH SCORE
-              </p>
-            )}
-            <button
-              type="button"
-              onClick={() => restartGame()}
-              className="mt-2 inline-flex items-center gap-2 rounded-lg bg-emerald-500 px-7 py-3 font-mono text-sm font-bold tracking-normal text-[#04160d] shadow-lg transition hover:bg-emerald-400 active:scale-95"
-            >
-              <RotateCcw className="h-4 w-4" strokeWidth={2.8} />
-              PLAY AGAIN
-            </button>
-          </div>
-        </div>
+        <GameOverOverlay
+          score={gameState.score}
+          bestScore={gameState.highScore}
+          onPlayAgain={() => restartGame()}
+        />
       )}
 
       {gameState.gameWon && (
-        <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/50 backdrop-blur-[2px]">
-          <div className="animate-bounce-in space-y-3 text-center">
-            <div className="flex justify-center text-emerald-300 drop-shadow-[0_0_16px_rgba(74,222,128,0.5)]">
-              <Trophy className="h-14 w-14" strokeWidth={2.6} />
-            </div>
-            <h2 className="font-mono text-4xl font-black tracking-normal text-emerald-300">LEVEL {gameState.level} COMPLETE</h2>
-            <p className="font-mono text-xl font-bold text-amber-300">Score: {gameState.score}</p>
-            {challengeBonus > 0 && (
-              <p className="font-mono text-sm font-bold tracking-normal text-lime-300">LEVEL BONUS +{challengeBonus}</p>
-            )}
-          </div>
-        </div>
+        <LevelCompleteOverlay
+          level={Math.max(1, gameState.level - 1)}
+          score={gameState.score}
+          bonus={challengeBonus}
+        />
       )}
 
       {gameState.paused && !gameState.gameOver && !gameState.gameWon && (

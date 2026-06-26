@@ -6,6 +6,28 @@ updated: 2026-06-26
 
 # Context Changelog
 
+## 1.28.0 - 2026-06-27
+
+Changed files and notes:
+
+- [App.tsx](../src/App.tsx)
+- [EndStateOverlay.tsx](../src/EndStateOverlay.tsx)
+- [index.css](../src/index.css)
+- [Context index](00%20Context%20Index.md)
+- [Architecture Map](Architecture%20Map.md)
+- [Project audit](PROJECT.mdc)
+
+Reason:
+
+- The level-complete and game-over states needed to match HMI Studio nodes `88:814` and `71:558`.
+
+Implementation impact:
+
+- Both states use a `70%` black backdrop, `4.5px` blur, Geologica typography, and the exact Figma hierarchy and color accents.
+- Level complete displays the completed level, current score, and challenge bonus during the existing timed transition.
+- Game over displays score and best score and retains the existing Play Again restart action plus Space/Enter keyboard path.
+- Persistent HUD and movement controls are hidden while any modal overlay is active.
+
 ## 1.27.1 - 2026-06-27
 
 Changed files and notes:

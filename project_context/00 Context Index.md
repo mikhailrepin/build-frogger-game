@@ -26,6 +26,7 @@ This Obsidian vault is the primary documentation-context core and memory store f
 ## Code Entry Points
 
 - [App shell](../src/App.tsx)
+- [End-state overlays](../src/EndStateOverlay.tsx)
 - [Game state and loop](../src/useGame.ts)
 - [Pure gameplay core](../src/gameCore.ts)
 - [R3F scene](../src/Scene.tsx)
