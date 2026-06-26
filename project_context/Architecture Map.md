@@ -47,6 +47,7 @@ updated: 2026-06-26
 - Road markings in [Scene.tsx](../src/Scene.tsx) use a dedicated Y offset and non-writing depth material to avoid z-fighting shimmer during camera movement.
 - Water in [Scene.tsx](../src/Scene.tsx) is rendered as one continuous shader surface per contiguous river section with `#0045A0` coloration; longitudinal current streaks follow each lane's platform direction and blend across lane boundaries, while the lily-pad goal lane uses static water. The general level background is `#072615` and the board plinth material remains separate.
 - The DOM HUD in [App.tsx](../src/App.tsx) uses Figma-exported UI assets from `public/ui`, `Geologica` typography, and liquid-glass panel styling while keeping touch controls visible across pointer classes so mobile devices always have an input path.
+- The Figma-aligned pause dialog in [PauseOverlay.tsx](../src/PauseOverlay.tsx) owns pause-only controls, while [audio.ts](../src/audio.ts) exposes one four-level master-volume and mute adapter shared by music and effects.
 - Active bonus state in [useGame.ts](../src/useGame.ts) includes a HUD-facing featured bonus timer, while the ability booleans remain separate gameplay state.
 - [viewMath.ts](../src/viewMath.ts) is a pure helper and a good template for more visual-fit calculations.
 - [gameMetrics.ts](../src/gameMetrics.ts) is intentionally adapter-only; storage or analytics consumers should live in separate modules such as [gameMetricsStorage.ts](../src/gameMetricsStorage.ts).

@@ -7,12 +7,43 @@ let musicOsc1: OscillatorNode | null = null;
 let musicOsc2: OscillatorNode | null = null;
 let musicLfo: OscillatorNode | null = null;
 let musicPlaying = false;
+const MASTER_GAIN_MAX = 0.3;
+
+export const AUDIO_VOLUME_LEVELS = 4;
+export const DEFAULT_AUDIO_VOLUME_LEVEL = 2;
+
+export interface AudioSettings {
+  volumeLevel: number;
+  muted: boolean;
+}
+
+let audioSettings: AudioSettings = {
+  volumeLevel: DEFAULT_AUDIO_VOLUME_LEVEL,
+  muted: false,
+};
+
+function clampVolumeLevel(level: number) {
+  return Math.max(1, Math.min(AUDIO_VOLUME_LEVELS, Math.round(level)));
+}
+
+function getMasterGainValue() {
+  return audioSettings.muted
+    ? 0
+    : MASTER_GAIN_MAX * audioSettings.volumeLevel / AUDIO_VOLUME_LEVELS;
+}
+
+function syncMasterGain() {
+  if (!ctx || !masterGain) return;
+  const now = ctx.currentTime;
+  masterGain.gain.cancelScheduledValues(now);
+  masterGain.gain.setTargetAtTime(getMasterGainValue(), now, 0.015);
+}
 
 function getCtx() {
   if (!ctx) {
     ctx = new AudioContext();
     masterGain = ctx.createGain();
-    masterGain.gain.value = 0.3;
+    masterGain.gain.value = getMasterGainValue();
     masterGain.connect(ctx.destination);
     musicGain = ctx.createGain();
     musicGain.gain.value = 0.08;
@@ -20,6 +51,28 @@ function getCtx() {
   }
   if (ctx.state === 'suspended') ctx.resume();
   return ctx;
+}
+
+export function getAudioSettings(): AudioSettings {
+  return { ...audioSettings };
+}
+
+export function setAudioVolumeLevel(volumeLevel: number) {
+  audioSettings = {
+    ...audioSettings,
+    volumeLevel: clampVolumeLevel(volumeLevel),
+  };
+  syncMasterGain();
+  return getAudioSettings();
+}
+
+export function setAudioMuted(muted: boolean) {
+  audioSettings = {
+    ...audioSettings,
+    muted,
+  };
+  syncMasterGain();
+  return getAudioSettings();
 }
 
 function disconnectNode(node: AudioNode | null | undefined) {

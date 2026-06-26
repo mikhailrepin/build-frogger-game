@@ -12,9 +12,16 @@ import {
 import * as THREE from 'three';
 import { useGame } from './useGame';
 import { GameScene } from './Scene';
+import { PauseOverlay } from './PauseOverlay';
 import type { Direction } from './gameConstants';
 import { CELL_SIZE } from './gameConstants';
 import { getRowFromY } from './gameCore';
+import {
+  AUDIO_VOLUME_LEVELS,
+  getAudioSettings,
+  setAudioMuted,
+  setAudioVolumeLevel,
+} from './audio';
 
 type IconComponent = ComponentType<{ className?: string; strokeWidth?: number }>;
 type BonusKind = 'shield' | 'slowTime' | 'currentAnchor' | 'superHop' | 'fly';
@@ -93,6 +100,7 @@ export default function App() {
   const [supportsKeyboardHints, setSupportsKeyboardHints] = useState(() => (
     typeof window !== 'undefined' && window.matchMedia('(any-pointer: fine)').matches
   ));
+  const [audioSettings, setAudioSettingsState] = useState(getAudioSettings);
 
   useEffect(() => {
     if (deathAnimation) {
@@ -141,6 +149,21 @@ export default function App() {
   const activeBonusMeta = activeBonus ? BONUS_HUD[activeBonus.kind] : null;
   const ActiveBonusIcon = activeBonusMeta?.Icon;
   const activeBonusText = activeBonus ? Math.max(0, activeBonus.remainingSeconds) : gameState.lives;
+  const decreaseVolume = () => {
+    const volumeLevel = Math.max(1, audioSettings.volumeLevel - 1);
+    setAudioVolumeLevel(volumeLevel);
+    setAudioSettingsState({ ...audioSettings, volumeLevel });
+  };
+  const increaseVolume = () => {
+    const volumeLevel = Math.min(AUDIO_VOLUME_LEVELS, audioSettings.volumeLevel + 1);
+    setAudioVolumeLevel(volumeLevel);
+    setAudioSettingsState({ ...audioSettings, volumeLevel });
+  };
+  const toggleMuted = () => {
+    const muted = !audioSettings.muted;
+    setAudioMuted(muted);
+    setAudioSettingsState({ ...audioSettings, muted });
+  };
 
   return (
     <div className="fixed inset-0 select-none overflow-hidden bg-[#002713]">
@@ -189,7 +212,7 @@ export default function App() {
       </div>
 
       <div
-        className="pointer-events-none absolute left-0 right-0 top-0 z-20 flex justify-center"
+        className={`pointer-events-none absolute left-0 right-0 top-0 z-20 flex justify-center transition-opacity ${gameState.paused ? 'invisible opacity-0' : 'visible opacity-100'}`}
         style={{ paddingTop: 'max(10px, env(safe-area-inset-top))' }}
       >
         <div
@@ -241,7 +264,7 @@ export default function App() {
       </div>
 
       <div
-        className="ui-font pointer-events-none absolute bottom-0 left-0 right-0 z-20 flex flex-col items-center"
+        className={`ui-font pointer-events-none absolute bottom-0 left-0 right-0 z-20 flex flex-col items-center transition-opacity ${gameState.paused ? 'invisible opacity-0' : 'visible opacity-100'}`}
         style={{ paddingBottom: 'max(14px, env(safe-area-inset-bottom))' }}
       >
         <ControlButton direction="up" onMove={(direction) => moveFrog(direction, 'touch')} className="mb-2" />
@@ -321,17 +344,15 @@ export default function App() {
       )}
 
       {gameState.paused && !gameState.gameOver && !gameState.gameWon && (
-        <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/50 backdrop-blur-sm">
-          <h2 className="font-mono text-4xl font-black tracking-normal text-white">PAUSED</h2>
-          <button
-            type="button"
-            onClick={togglePause}
-            className="mt-5 inline-flex items-center gap-2 rounded-lg border border-white/20 bg-[#02190d]/80 px-6 py-3 font-mono text-sm font-bold tracking-normal text-slate-100 transition hover:bg-white/10 active:scale-95"
-          >
-            <Play className="h-4 w-4" strokeWidth={2.8} />
-            RESUME
-          </button>
-        </div>
+        <PauseOverlay
+          score={gameState.score}
+          volumeLevel={audioSettings.volumeLevel}
+          muted={audioSettings.muted}
+          onDecreaseVolume={decreaseVolume}
+          onIncreaseVolume={increaseVolume}
+          onToggleMute={toggleMuted}
+          onResume={togglePause}
+        />
       )}
     </div>
   );

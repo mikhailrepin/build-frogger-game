@@ -6,6 +6,29 @@ updated: 2026-06-26
 
 # Context Changelog
 
+## 1.27.0 - 2026-06-27
+
+Changed files and notes:
+
+- [App.tsx](../src/App.tsx)
+- [PauseOverlay.tsx](../src/PauseOverlay.tsx)
+- [audio.ts](../src/audio.ts)
+- [audio.test.ts](../src/audio.test.ts)
+- [Architecture Map](Architecture%20Map.md)
+- [Project audit](PROJECT.mdc)
+- [Figma UI assets](../public/ui)
+
+Reason:
+
+- The placeholder pause overlay needed to match HMI Studio node `71:541` and its muted button variant `71:537`.
+- Volume and mute controls needed one shared audio adapter for music and effects.
+
+Implementation impact:
+
+- Pause uses a responsive DOM dialog with exact Figma hierarchy, Geologica typography, local volume assets, and focus on the resume action.
+- Audio exposes four master-volume levels plus independent mute state without creating additional audio contexts.
+- `Back to Game` resumes play; `Bonus Guide` and `Main Screen` remain intentionally inert.
+
 ## 1.26.16 - 2026-06-27
 
 Changed files and notes:
