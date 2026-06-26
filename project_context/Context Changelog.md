@@ -6,6 +6,44 @@ updated: 2026-06-26
 
 # Context Changelog
 
+## 1.26.5 - 2026-06-26
+
+Changed files and notes:
+
+- [.gitignore](../.gitignore)
+- [Context Changelog](Context%20Changelog.md)
+
+Reason:
+
+- The repository had no root `.gitignore`, so installed Node dependencies, Vite caches, and build output were tracked by git.
+
+Implementation impact:
+
+- Agents should keep `node_modules/`, `.vite/`, and `dist/` as local generated artifacts and commit dependency changes through `package.json` and `package-lock.json` only.
+
+## 1.26.4 - 2026-06-26
+
+Changed files and notes:
+
+- [App.tsx](../src/App.tsx)
+- [useGame.ts](../src/useGame.ts)
+- [Scene.tsx](../src/Scene.tsx)
+- [package.json](../package.json)
+- [Architecture Map](Architecture%20Map.md)
+- [PROJECT.mdc](PROJECT.mdc)
+
+Reason:
+
+- The HUD was rebuilt to match the current prototype direction with a compact top status capsule, lucide icons, and active bonus countdown display.
+- Touch controls now remain visible instead of being gated only by coarse-pointer detection, giving mobile users a reliable input path.
+- Camera follow now runs on all levels and adds a bottom-safe offset so the player is less likely to sit under the control cluster.
+
+Implementation impact:
+
+- Agents should use lucide icons for DOM HUD controls instead of custom SVG or emoji glyphs.
+- Bonus UI should read `activeBonus` from [useGame.ts](../src/useGame.ts) for HUD display and keep ability booleans for gameplay effects.
+- Camera work in [Scene.tsx](../src/Scene.tsx) must account for persistent bottom controls when calibrating follow offsets.
+
 ## 1.26.3 - 2026-06-26
 
 Changed files and notes:
