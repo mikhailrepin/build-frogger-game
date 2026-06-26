@@ -159,40 +159,44 @@ export function getMoveProposal(
   stepCells = 1,
 ): MoveProposal | null {
   const cells = Math.max(1, Math.floor(stepCells));
-  let newX = pos.x;
-  let newY = pos.y;
+  const buildProposal = (hopCells: number): MoveProposal | null => {
+    let newX = pos.x;
+    let newY = pos.y;
 
-  switch (direction) {
-    case 'up':
-      newY -= CELL_SIZE * cells;
-      break;
-    case 'down':
-      newY += CELL_SIZE * cells;
-      break;
-    case 'left':
-      newX -= CELL_SIZE * cells;
-      break;
-    case 'right':
-      newX += CELL_SIZE * cells;
-      break;
-  }
+    switch (direction) {
+      case 'up':
+        newY -= CELL_SIZE * hopCells;
+        break;
+      case 'down':
+        newY += CELL_SIZE * hopCells;
+        break;
+      case 'left':
+        newX -= CELL_SIZE * hopCells;
+        break;
+      case 'right':
+        newX += CELL_SIZE * hopCells;
+        break;
+    }
 
-  if (!isWithinBoard(newX, newY, rows)) return null;
+    if (!isWithinBoard(newX, newY, rows)) return null;
 
-  const nearestCol = Math.round(pos.x / CELL_SIZE);
-  const snappedX = nearestCol * CELL_SIZE;
-  const snappedNewX = direction === 'left'
-    ? snappedX - CELL_SIZE
-    : direction === 'right'
-      ? snappedX + CELL_SIZE
-      : snappedX;
+    const nearestCol = Math.round(pos.x / CELL_SIZE);
+    const snappedX = nearestCol * CELL_SIZE;
+    const snappedNewX = direction === 'left'
+      ? snappedX - CELL_SIZE * hopCells
+      : direction === 'right'
+        ? snappedX + CELL_SIZE * hopCells
+        : snappedX;
 
-  if (snappedNewX < 0 || snappedNewX >= COLS * CELL_SIZE) return null;
+    if (snappedNewX < 0 || snappedNewX >= COLS * CELL_SIZE) return null;
 
-  return {
-    startPos: { x: Math.round(pos.x), y: Math.round(pos.y) },
-    targetPos: { x: snappedNewX, y: Math.round(newY) },
+    return {
+      startPos: { x: Math.round(pos.x), y: Math.round(pos.y) },
+      targetPos: { x: snappedNewX, y: Math.round(newY) },
+    };
   };
+
+  return buildProposal(cells) ?? (cells > 1 ? buildProposal(1) : null);
 }
 
 export function checkCollision(frogX: number, frogY: number, obj: GameObject) {

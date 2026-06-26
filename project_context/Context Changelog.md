@@ -6,6 +6,27 @@ updated: 2026-06-26
 
 # Context Changelog
 
+## 1.26.3 - 2026-06-26
+
+Changed files and notes:
+
+- [Scene.tsx](../src/Scene.tsx)
+- [gameCore.ts](../src/gameCore.ts)
+- [gameCore.test.ts](../src/gameCore.test.ts)
+- [Architecture Map](Architecture%20Map.md)
+
+Reason:
+
+- River turtle visuals now follow the same runtime lane positions as their collision bodies instead of rendering at stale spawn coordinates.
+- Camera framing no longer shrinks the board as levels become taller, and the follow motion now uses a softer damped offset to preserve readability.
+- Super-hop movement now applies its longer stride consistently in all directions and falls back to a normal hop at board limits instead of blocking movement.
+
+Implementation impact:
+
+- Agents should keep moving river-platform visuals bound to runtime lane refs, not spawn-time item snapshots.
+- Camera changes in [Scene.tsx](../src/Scene.tsx) should preserve the fixed baseline zoom budget and adjust follow behavior through damping, not by scaling the whole board down per level.
+- Bonus movement changes should remain reversible and test-covered in [gameCore.ts](../src/gameCore.ts) and [gameCore.test.ts](../src/gameCore.test.ts).
+
 ## 1.26.2 - 2026-06-26
 
 Changed files and notes:

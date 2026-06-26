@@ -7,7 +7,6 @@ import {
 } from './gameConstants';
 import type { GameObject } from './gameConstants';
 import type { BonusItem, FrogState } from './gameCore';
-import { computeOrthographicZoom } from './viewMath';
 
 /* ═══════════════ WORLD HELPERS ═══════════════ */
 const S = 1 / CS;
@@ -29,6 +28,11 @@ const BOARD_PLINTH_Y = -0.2;
 const BOARD_PLINTH_HEIGHT = 0.3;
 const BOARD_PLINTH_MARGIN = 0.5;
 const FROG_SHADOW_Y = -0.27;
+const CAMERA_BASE_Z = 6;
+const CAMERA_BASE_ZOOM = 55;
+const CAMERA_FOLLOW_BLEND = 0.04;
+const CAMERA_FOLLOW_SCALE = 0.6;
+const CAMERA_FOLLOW_DEAD_ZONE = 0.35;
 
 function toX(v: number) { return v * S - CX; }
 function toZ(v: number, totalRows: number) { return v * S - totalRows / 2; }
@@ -62,30 +66,33 @@ function makeClipPlanes(totalRows: number) {
 
 /* ═══════════════ CAMERA FOLLOW ═══════════════ */
 function CameraFollow({ frogRef, totalRows }: { frogRef: React.MutableRefObject<FrogState>; totalRows: number }) {
-  const { camera, size } = useThree();
+  const { camera } = useThree();
   const targetZ = useRef(0);
 
   useEffect(() => {
-    const zoom = computeOrthographicZoom(size.width, size.height, COLS + 2.5, totalRows + 4, {
-      safety: 0.92,
-      minZoom: 18,
-      maxZoom: 55,
-    });
-    camera.zoom = zoom;
+    targetZ.current = 0;
+    camera.position.z = CAMERA_BASE_Z;
+    camera.zoom = CAMERA_BASE_ZOOM;
     camera.updateProjectionMatrix();
-  }, [camera, size.width, size.height, totalRows]);
+  }, [camera, totalRows]);
 
   useFrame(() => {
-    if (totalRows <= 17) return; // small levels don't need follow
+    if (totalRows <= 17) {
+      targetZ.current = 0;
+      camera.position.z += (CAMERA_BASE_Z - camera.position.z) * CAMERA_FOLLOW_BLEND;
+      return;
+    }
 
-    // Smoothly track frog Z
-    const desired = toZ(frogRef.current.pos.y + CS / 2, totalRows) * 0.6; // partial follow
-    targetZ.current += (desired - targetZ.current) * 0.05;
+    const desired = toZ(frogRef.current.pos.y + CS / 2, totalRows) * CAMERA_FOLLOW_SCALE;
+    const delta = desired - targetZ.current;
+    const softenedTarget = Math.abs(delta) <= CAMERA_FOLLOW_DEAD_ZONE
+      ? targetZ.current
+      : desired - Math.sign(delta) * CAMERA_FOLLOW_DEAD_ZONE;
+    targetZ.current += (softenedTarget - targetZ.current) * CAMERA_FOLLOW_BLEND;
     const maxShift = (totalRows - 15) / 2 * 0.5;
     const clamped = Math.max(-maxShift, Math.min(maxShift, targetZ.current));
 
-    camera.position.z = 6 + clamped;
-    (camera as THREE.OrthographicCamera).updateProjectionMatrix();
+    camera.position.z = CAMERA_BASE_Z + clamped;
   });
 
   return null;
@@ -451,23 +458,24 @@ function Log3D({ item, itemIndex, rowIndex, variant, laneGy, totalRows, laneItem
   const w = item.width * S;
   const px = toX(item.x + item.width / 2);
   const pz = toZ(laneGy + CS / 2, totalRows);
+  const y = variant === 'turtle' ? 0.02 : 0.04;
   const groupRef = useRef<THREE.Group>(null);
 
   useFrame(() => {
     if (!groupRef.current) return;
     const runtimeItem = laneItemsRef.current[rowIndex]?.[itemIndex];
     if (!runtimeItem) return;
-    groupRef.current.position.set(toX(runtimeItem.x + runtimeItem.width / 2), 0.04, pz);
+    groupRef.current.position.set(toX(runtimeItem.x + runtimeItem.width / 2), y, pz);
   });
 
   if (variant === 'turtle') {
-    const count = Math.floor(item.width / CS);
+    const count = Math.max(1, Math.round(w));
     return (
-      <group>
+      <group ref={groupRef} position={[px, y, pz]}>
         {Array.from({ length: count }).map((_, i) => {
-          const tx = toX(item.x + i * CS + CS / 2);
+          const tx = i + 0.5 - w / 2;
           return (
-            <group key={i} position={[tx, 0.02, pz]}>
+            <group key={i} position={[tx, 0, 0]}>
               {showCollisionBoxes && <DebugBox size={[0.72, 0.42, 0.72]} color="#38bdf8" />}
               <mesh castShadow><sphereGeometry args={[0.32, 12, 8, 0, Math.PI * 2, 0, Math.PI * 0.55]} /><meshStandardMaterial color="#43a047" roughness={0.55} metalness={0.1} clippingPlanes={cp} clipShadows /></mesh>
               <mesh position={[0, -0.02, 0]} rotation={[-Math.PI / 2, 0, 0]}><circleGeometry args={[0.3, 10]} /><meshStandardMaterial color="#8d6e63" roughness={0.9} side={THREE.DoubleSide} clippingPlanes={cp} clipShadows /></mesh>
@@ -485,7 +493,7 @@ function Log3D({ item, itemIndex, rowIndex, variant, laneGy, totalRows, laneItem
   }
 
   return (
-    <group ref={groupRef} position={[px, 0.04, pz]}>
+    <group ref={groupRef} position={[px, y, pz]}>
       {showCollisionBoxes && <DebugBox size={[w * 0.98, 0.55, 0.56]} color="#38bdf8" />}
       <mesh rotation={[0, 0, Math.PI / 2]} castShadow><cylinderGeometry args={[0.24, 0.28, w * 0.95, 14]} /><meshStandardMaterial color="#795548" roughness={0.85} clippingPlanes={cp} clipShadows /></mesh>
       {[-1, 1].map(side => (

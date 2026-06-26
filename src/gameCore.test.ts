@@ -50,11 +50,15 @@ describe('game core', () => {
     const frog = createInitialFrog(15);
     const move = getMoveProposal(frog.pos, 'up', 15);
     const doubleMove = getMoveProposal(frog.pos, 'up', 15, 2);
+    const doubleRight = getMoveProposal(frog.pos, 'right', 15, 2);
+    const fallbackMove = getMoveProposal({ x: 300, y: CELL_SIZE * 2 }, 'up', 15, 2);
 
     expect(getRowFromY(15, frog.pos.y)).toBe(0);
     expect(move?.startPos).toEqual({ x: 300, y: 700 });
     expect(move?.targetPos).toEqual({ x: 300, y: 650 });
     expect(doubleMove?.targetPos).toEqual({ x: 300, y: 600 });
+    expect(doubleRight?.targetPos).toEqual({ x: 400, y: 700 });
+    expect(fallbackMove?.targetPos).toEqual({ x: 300, y: CELL_SIZE });
     expect(getMoveProposal({ x: 0, y: 700 }, 'left', 15)).toBeNull();
   });
 
