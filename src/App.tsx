@@ -54,7 +54,7 @@ function ControlButton({ direction, onMove, className = '' }: {
         event.preventDefault();
         onMove(direction);
       }}
-      className={`pointer-events-auto h-12 w-12 touch-none rounded-[18px] transition active:scale-95 ${className}`}
+      className={`liquid-glass pointer-events-auto h-12 w-12 touch-none rounded-[18px] transition active:scale-95 ${className}`}
     >
       <img src={UI_ASSETS.controls[direction]} alt="" className="h-full w-full select-none" draggable={false} />
     </button>
@@ -198,7 +198,7 @@ export default function App() {
         >
           <div className="flex min-w-[86px] shrink-0 items-center gap-2 px-2 min-[390px]:min-w-[100px]">
             <img src={UI_ASSETS.coins} alt="" className="h-6 w-6 shrink-0" draggable={false} />
-            <span className="min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap text-[24px] font-normal leading-8 tracking-[2.4px] text-[var(--ui-fg)] tabular-nums">
+            <span className="min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap text-[18px] font-normal leading-8 tracking-[1.8px] text-[var(--ui-fg)] tabular-nums">
               {gameState.score}
             </span>
           </div>
@@ -214,13 +214,13 @@ export default function App() {
             {activeBonus ? (
               <img src={UI_ASSETS.clock} alt="" className="hidden h-6 w-6 shrink-0 min-[390px]:block" draggable={false} />
             ) : null}
-            <span className="whitespace-nowrap text-[20px] font-medium leading-8 tracking-[2px] text-[var(--ui-fg)] tabular-nums">
+            <span className="whitespace-nowrap text-[18px] font-medium leading-8 tracking-[1.8px] text-[var(--ui-fg)] tabular-nums">
               {activeBonusText}
             </span>
           </div>
 
           <div className="flex shrink-0 items-center justify-end gap-3">
-            <span className="whitespace-nowrap text-[20px] font-medium uppercase leading-8 tracking-[2px] text-[var(--ui-fg)]">
+            <span className="whitespace-nowrap text-[18px] font-medium uppercase leading-8 tracking-[1.8px] text-[var(--ui-fg)]">
               L {gameState.level}
             </span>
             <button

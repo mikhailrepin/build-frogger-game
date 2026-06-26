@@ -42,7 +42,7 @@ updated: 2026-06-26
 - The canvas renderer configuration in [App.tsx](../src/App.tsx) should keep an explicit shadow-map mode instead of the boolean `shadows` default, because the current React Three Fiber default still maps to Three.js `PCFSoftShadowMap`, which is deprecated.
 - High-frequency frog and lane motion now stay in refs, while React state is limited to coarse UI and lifecycle updates.
 - Runtime lane positions in [useGame.ts](../src/useGame.ts) must only be seeded from React state when level data is rebuilt; syncing the mutable lane ref from state on every render rewinds obstacle and platform motion during unrelated HUD updates.
-- Camera framing for the playfield should keep the baseline orthographic zoom stable across level lengths and use a damped follow offset instead of shrinking the world to fit taller boards.
+- Camera framing for the playfield should keep the baseline orthographic zoom stable across level lengths and use damped X/Z follow offsets instead of shrinking the world to fit taller boards.
 - The DOM HUD in [App.tsx](../src/App.tsx) uses Figma-exported UI assets from `public/ui`, `Geologica` typography, and liquid-glass panel styling while keeping touch controls visible across pointer classes so mobile devices always have an input path.
 - Active bonus state in [useGame.ts](../src/useGame.ts) includes a HUD-facing featured bonus timer, while the ability booleans remain separate gameplay state.
 - [viewMath.ts](../src/viewMath.ts) is a pure helper and a good template for more visual-fit calculations.

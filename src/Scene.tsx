@@ -28,11 +28,15 @@ const BOARD_PLINTH_Y = -0.2;
 const BOARD_PLINTH_HEIGHT = 0.3;
 const BOARD_PLINTH_MARGIN = 0.5;
 const FROG_SHADOW_Y = -0.27;
+const CAMERA_BASE_X = 6;
 const CAMERA_BASE_Z = 6;
 const CAMERA_BASE_ZOOM = 55;
 const CAMERA_FOLLOW_BLEND = 0.07;
+const CAMERA_FOLLOW_X_SCALE = 0.42;
 const CAMERA_FOLLOW_SCALE = 0.72;
 const CAMERA_FOLLOW_DEAD_ZONE = 0.18;
+const CAMERA_SIDE_SAFE_X_MOBILE = 0.35;
+const CAMERA_SIDE_SAFE_X_DESKTOP = 0.2;
 const CAMERA_BOTTOM_SAFE_Z_MOBILE = 1.3;
 const CAMERA_BOTTOM_SAFE_Z_DESKTOP = 0.75;
 
@@ -69,29 +73,46 @@ function makeClipPlanes(totalRows: number) {
 /* ═══════════════ CAMERA FOLLOW ═══════════════ */
 function CameraFollow({ frogRef, totalRows }: { frogRef: React.MutableRefObject<FrogState>; totalRows: number }) {
   const { camera, size } = useThree();
+  const targetX = useRef(0);
   const targetZ = useRef(0);
 
   useEffect(() => {
+    targetX.current = 0;
     targetZ.current = 0;
+    camera.position.x = CAMERA_BASE_X;
     camera.position.z = CAMERA_BASE_Z;
     camera.zoom = CAMERA_BASE_ZOOM;
     camera.updateProjectionMatrix();
   }, [camera, totalRows]);
 
   useFrame(() => {
+    const sideSafeOffset = size.width < 768 || size.height < 760
+      ? CAMERA_SIDE_SAFE_X_MOBILE
+      : CAMERA_SIDE_SAFE_X_DESKTOP;
     const bottomSafeOffset = size.width < 768 || size.height < 760
       ? CAMERA_BOTTOM_SAFE_Z_MOBILE
       : CAMERA_BOTTOM_SAFE_Z_DESKTOP;
-    const desired = toZ(frogRef.current.pos.y + CS / 2, totalRows) * CAMERA_FOLLOW_SCALE + bottomSafeOffset;
-    const delta = desired - targetZ.current;
-    const softenedTarget = Math.abs(delta) <= CAMERA_FOLLOW_DEAD_ZONE
-      ? targetZ.current
-      : desired - Math.sign(delta) * CAMERA_FOLLOW_DEAD_ZONE;
-    targetZ.current += (softenedTarget - targetZ.current) * CAMERA_FOLLOW_BLEND;
-    const maxShift = Math.max(1.2, (totalRows - 11) / 2 * 0.6);
-    const clamped = Math.max(-maxShift, Math.min(maxShift, targetZ.current));
+    const desiredX = toX(frogRef.current.pos.x + CS / 2) * CAMERA_FOLLOW_X_SCALE + sideSafeOffset;
+    const deltaX = desiredX - targetX.current;
+    const softenedTargetX = Math.abs(deltaX) <= CAMERA_FOLLOW_DEAD_ZONE
+      ? targetX.current
+      : desiredX - Math.sign(deltaX) * CAMERA_FOLLOW_DEAD_ZONE;
+    targetX.current += (softenedTargetX - targetX.current) * CAMERA_FOLLOW_BLEND;
 
-    camera.position.z = CAMERA_BASE_Z + clamped;
+    const desiredZ = toZ(frogRef.current.pos.y + CS / 2, totalRows) * CAMERA_FOLLOW_SCALE + bottomSafeOffset;
+    const deltaZ = desiredZ - targetZ.current;
+    const softenedTargetZ = Math.abs(deltaZ) <= CAMERA_FOLLOW_DEAD_ZONE
+      ? targetZ.current
+      : desiredZ - Math.sign(deltaZ) * CAMERA_FOLLOW_DEAD_ZONE;
+    targetZ.current += (softenedTargetZ - targetZ.current) * CAMERA_FOLLOW_BLEND;
+
+    const maxShiftX = Math.max(0.8, BOARD_WIDTH * S * 0.16);
+    const maxShiftZ = Math.max(1.2, (totalRows - 11) / 2 * 0.6);
+    const clampedX = Math.max(-maxShiftX, Math.min(maxShiftX, targetX.current));
+    const clampedZ = Math.max(-maxShiftZ, Math.min(maxShiftZ, targetZ.current));
+
+    camera.position.x = CAMERA_BASE_X + clampedX;
+    camera.position.z = CAMERA_BASE_Z + clampedZ;
   });
 
   return null;

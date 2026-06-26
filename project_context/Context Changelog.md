@@ -6,6 +6,26 @@ updated: 2026-06-26
 
 # Context Changelog
 
+## 1.26.7 - 2026-06-26
+
+Changed files and notes:
+
+- [App.tsx](../src/App.tsx)
+- [Scene.tsx](../src/Scene.tsx)
+- [Architecture Map](Architecture%20Map.md)
+
+Reason:
+
+- The Figma-aligned HUD needed a smaller `18px` top-panel text treatment.
+- Touch controls needed the same liquid-glass backing as the top HUD.
+- Camera follow needed horizontal movement as well as vertical/depth movement to reduce overlap between the player and persistent HUD controls.
+
+Implementation impact:
+
+- Agents should keep top HUD text at `18px` unless a newer Figma spec supersedes it.
+- Control buttons should retain the shared `liquid-glass` surface, not only transparent icon SVGs.
+- Camera tuning in [Scene.tsx](../src/Scene.tsx) should preserve damped X/Z follow with bounded shifts.
+
 ## 1.26.6 - 2026-06-26
 
 Changed files and notes:
