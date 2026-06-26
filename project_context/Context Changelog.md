@@ -6,6 +6,25 @@ updated: 2026-06-26
 
 # Context Changelog
 
+## 1.26.11 - 2026-06-27
+
+Changed files and notes:
+
+- [Scene.tsx](../src/Scene.tsx)
+- [Architecture Map](Architecture%20Map.md)
+- [Art Direction Sheet](Art%20Direction%20Sheet.md)
+
+Reason:
+
+- Separate water meshes and independent wave phases exposed visible seams between adjacent river lanes.
+- Circular ripple shading moved across the canal and did not communicate the horizontal current.
+
+Implementation impact:
+
+- Render each contiguous river section as one flat water surface instead of one deforming mesh per lane.
+- Keep water motion in the fragment shader as restrained longitudinal current streaks driven by river speed and direction.
+- Preserve static water detail when reduced-motion mode disables flow animation.
+
 ## 1.26.10 - 2026-06-26
 
 Changed files and notes:

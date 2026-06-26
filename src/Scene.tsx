@@ -23,7 +23,7 @@ const FROG_RIVER_LIFT = 0.28;
 const FROG_HOP_ARC = 0.2;
 const FROG_GROUND_OFFSET = 0.01;
 const WATER_Y = -0.01;
-const WATER_OPACITY = 0.9;
+const WATER_EDGE_OVERLAP = 0.04;
 const LEVEL_BACKGROUND = '#072615';
 const BOARD_PLINTH_Y = -0.2;
 const BOARD_PLINTH_HEIGHT = 0.3;
@@ -122,13 +122,31 @@ function CameraFollow({ frogRef, totalRows }: { frogRef: React.MutableRefObject<
 }
 
 /* ═══════════════ WATER ═══════════════ */
-function WaterStrip({ z, seed, reducedMotion }: { z: number; seed: number; reducedMotion: boolean }) {
+interface RiverSection {
+  startIndex: number;
+  endIndex: number;
+  z: number;
+  height: number;
+  flowDirection: number;
+  flowSpeed: number;
+}
+
+function WaterSection({
+  section,
+  reducedMotion,
+}: {
+  section: RiverSection;
+  reducedMotion: boolean;
+}) {
   const materialRef = useRef<THREE.ShaderMaterial>(null);
   const uniforms = useMemo(() => ({
     uTime: { value: 0 },
-    uSeed: { value: seed },
+    uWorldZ: { value: section.z },
+    uSeed: { value: section.startIndex * 1.37 },
+    uFlowDirection: { value: section.flowDirection },
+    uFlowSpeed: { value: section.flowSpeed },
     uReducedMotion: { value: reducedMotion ? 1 : 0 },
-  }), [reducedMotion, seed]);
+  }), [reducedMotion, section]);
 
   useEffect(() => {
     if (materialRef.current) {
@@ -143,42 +161,72 @@ function WaterStrip({ z, seed, reducedMotion }: { z: number; seed: number; reduc
   });
 
   return (
-    <mesh position={[0, WATER_Y, z]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
-      <planeGeometry args={[W, 1, 32, 8]} />
+    <mesh position={[0, WATER_Y, section.z]} rotation={[-Math.PI / 2, 0, 0]}>
+      <planeGeometry args={[W, section.height + WATER_EDGE_OVERLAP]} />
       <shaderMaterial
         ref={materialRef}
-        transparent
-        depthWrite={false}
         uniforms={uniforms}
         vertexShader={`
-          uniform float uTime;
-          uniform float uSeed;
-          uniform float uReducedMotion;
-          varying vec2 vUv;
-          varying float vWave;
+          uniform float uWorldZ;
+          varying vec2 vWaterPosition;
 
           void main() {
-            vUv = uv;
-            float motion = mix(1.0, 0.0, uReducedMotion);
-            float waveA = sin(position.x * 2.4 + uTime * 1.4 + uSeed) * 0.022 * motion;
-            float waveB = cos(position.y * 5.2 + uTime * 1.9 + uSeed * 0.7) * 0.012 * motion;
-            float waveC = sin((position.x + position.y) * 1.6 + uTime * 1.1) * 0.008 * motion;
-            vWave = waveA + waveB + waveC;
-            vec3 transformed = position;
-            transformed.z += vWave;
-            gl_Position = projectionMatrix * modelViewMatrix * vec4(transformed, 1.0);
+            vWaterPosition = vec2(position.x, uWorldZ - position.y);
+            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
           }
         `}
         fragmentShader={`
-          varying vec2 vUv;
-          varying float vWave;
+          uniform float uTime;
+          uniform float uSeed;
+          uniform float uFlowDirection;
+          uniform float uFlowSpeed;
+          uniform float uReducedMotion;
+          varying vec2 vWaterPosition;
+
+          float hash21(vec2 point) {
+            point = fract(point * vec2(123.34, 456.21));
+            point += dot(point, point + 45.32);
+            return fract(point.x * point.y);
+          }
+
+          float valueNoise(vec2 point) {
+            vec2 cell = floor(point);
+            vec2 local = fract(point);
+            local = local * local * (3.0 - 2.0 * local);
+            float a = hash21(cell);
+            float b = hash21(cell + vec2(1.0, 0.0));
+            float c = hash21(cell + vec2(0.0, 1.0));
+            float d = hash21(cell + vec2(1.0, 1.0));
+            return mix(mix(a, b, local.x), mix(c, d, local.x), local.y);
+          }
 
           void main() {
             vec3 deep = vec3(0.0, 0.2705882353, 0.6274509804);
-            vec3 foam = vec3(0.0352941176, 0.3764705882, 0.7803921569);
-            float ripple = smoothstep(0.012, 0.032, abs(vWave));
-            vec3 color = mix(deep, foam, ripple * 0.45 + vUv.y * 0.16);
-            gl_FragColor = vec4(color, ${WATER_OPACITY.toFixed(1)});
+            vec3 mid = vec3(0.0156862745, 0.3215686275, 0.7098039216);
+            vec3 highlight = vec3(0.1058823529, 0.4666666667, 0.8509803922);
+
+            float motion = 1.0 - uReducedMotion;
+            float flow = uTime * uFlowSpeed * uFlowDirection * motion;
+            vec2 broadUv = vec2(
+              (vWaterPosition.x - flow) * 0.34 + uSeed,
+              vWaterPosition.y * 1.35
+            );
+            float broad = valueNoise(broadUv);
+
+            vec2 detailUv = vec2(
+              (vWaterPosition.x - flow * 1.35) * 0.72 + uSeed * 0.47,
+              vWaterPosition.y * 4.8 + broad * 0.7
+            );
+            float detail = valueNoise(detailUv);
+            float currentBand = 0.5 + 0.5 * sin(
+              vWaterPosition.y * 10.0 + broad * 2.4 + detail * 1.2
+            );
+            float streak = smoothstep(0.72, 0.94, detail + currentBand * 0.18);
+            float depthVariation = (broad - 0.5) * 0.16;
+
+            vec3 color = mix(deep, mid, 0.32 + depthVariation);
+            color = mix(color, highlight, streak * 0.32);
+            gl_FragColor = vec4(color, 1.0);
           }
         `}
       />
@@ -187,20 +235,55 @@ function WaterStrip({ z, seed, reducedMotion }: { z: number; seed: number; reduc
 }
 
 function WaterPlane({ lanes, totalRows, reducedMotion }: { lanes: LaneConfig[]; totalRows: number; reducedMotion: boolean }) {
+  const sections = useMemo(() => {
+    const result: RiverSection[] = [];
+    let startIndex = -1;
+
+    const addSection = (endIndex: number) => {
+      if (startIndex < 0) return;
+      const sectionLanes = lanes.slice(startIndex, endIndex);
+      const firstGy = (totalRows - 1 - startIndex) * CS;
+      const lastGy = (totalRows - endIndex) * CS;
+      const firstZ = toZ(firstGy + CS / 2, totalRows);
+      const lastZ = toZ(lastGy + CS / 2, totalRows);
+      const dominantSpeed = sectionLanes.reduce((dominant, lane) => (
+        Math.abs(lane.speed) > Math.abs(dominant) ? lane.speed : dominant
+      ), 0);
+      const averageSpeed = sectionLanes.reduce((sum, lane) => sum + Math.abs(lane.speed), 0)
+        / sectionLanes.length;
+
+      result.push({
+        startIndex,
+        endIndex,
+        z: (firstZ + lastZ) / 2,
+        height: sectionLanes.length,
+        flowDirection: Math.sign(dominantSpeed) || 1,
+        flowSpeed: Math.min(1.3, Math.max(0.55, averageSpeed * 0.65)),
+      });
+      startIndex = -1;
+    };
+
+    lanes.forEach((lane, index) => {
+      if (lane.type === 'river') {
+        if (startIndex < 0) startIndex = index;
+        return;
+      }
+      addSection(index);
+    });
+    addSection(lanes.length);
+
+    return result;
+  }, [lanes, totalRows]);
+
   return (
     <group>
-      {lanes.map((lane, idx) => {
-        if (lane.type !== 'river') return null;
-        const gy = (totalRows - 1 - idx) * CS;
-        return (
-          <WaterStrip
-            key={`water-${idx}`}
-            z={toZ(gy + CS / 2, totalRows)}
-            seed={idx * 0.73}
-            reducedMotion={reducedMotion}
-          />
-        );
-      })}
+      {sections.map(section => (
+        <WaterSection
+          key={`water-${section.startIndex}-${section.endIndex}`}
+          section={section}
+          reducedMotion={reducedMotion}
+        />
+      ))}
     </group>
   );
 }
