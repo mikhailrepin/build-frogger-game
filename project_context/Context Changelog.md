@@ -6,6 +6,25 @@ updated: 2026-06-26
 
 # Context Changelog
 
+## 1.26.10 - 2026-06-26
+
+Changed files and notes:
+
+- [Scene.tsx](../src/Scene.tsx)
+- [Architecture Map](Architecture%20Map.md)
+
+Reason:
+
+- The requested palette split sets the general level background to `#072615` and canal water to `#0045A0`.
+- The previous full-board water surface made blue read as the whole level background, so water is now scoped to river lanes only.
+- River water now uses a lightweight shader wave surface for a more dynamic look.
+
+Implementation impact:
+
+- Do not use the water surface as a full-board underlay while this palette split is active.
+- Keep the board plinth material separate from background and water color changes.
+- Water animation should stay shader-driven and respect reduced-motion mode.
+
 ## 1.26.9 - 2026-06-26
 
 Changed files and notes:

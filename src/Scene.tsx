@@ -24,6 +24,7 @@ const FROG_HOP_ARC = 0.2;
 const FROG_GROUND_OFFSET = 0.01;
 const WATER_Y = -0.01;
 const WATER_OPACITY = 0.9;
+const LEVEL_BACKGROUND = '#072615';
 const BOARD_PLINTH_Y = -0.2;
 const BOARD_PLINTH_HEIGHT = 0.3;
 const BOARD_PLINTH_MARGIN = 0.5;
@@ -121,30 +122,86 @@ function CameraFollow({ frogRef, totalRows }: { frogRef: React.MutableRefObject<
 }
 
 /* ═══════════════ WATER ═══════════════ */
-function WaterPlane({ totalRows, reducedMotion }: { totalRows: number; reducedMotion: boolean }) {
-  const ref = useRef<THREE.Mesh>(null);
-  const geoRef = useRef<THREE.PlaneGeometry>(null);
-  const H = totalRows;
+function WaterStrip({ z, seed, reducedMotion }: { z: number; seed: number; reducedMotion: boolean }) {
+  const materialRef = useRef<THREE.ShaderMaterial>(null);
+  const uniforms = useMemo(() => ({
+    uTime: { value: 0 },
+    uSeed: { value: seed },
+    uReducedMotion: { value: reducedMotion ? 1 : 0 },
+  }), [reducedMotion, seed]);
+
+  useEffect(() => {
+    if (materialRef.current) {
+      materialRef.current.uniforms.uReducedMotion.value = reducedMotion ? 1 : 0;
+    }
+  }, [reducedMotion]);
 
   useFrame(({ clock }) => {
-    if (!geoRef.current) return;
-    const pos = geoRef.current.attributes.position;
-    const t = clock.getElapsedTime();
-    for (let i = 0; i < pos.count; i++) {
-      const px = pos.getX(i);
-      const pz = pos.getZ(i);
-      const wave = reducedMotion ? 0 : Math.sin(px * 2.5 + t * 1.6) * 0.02 + Math.cos(pz * 3 + t * 1.1) * 0.015;
-      pos.setY(i, wave);
+    if (materialRef.current) {
+      materialRef.current.uniforms.uTime.value = clock.getElapsedTime();
     }
-    pos.needsUpdate = true;
   });
 
   return (
-    <mesh ref={ref} position={[0, WATER_Y, 0]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
-      <planeGeometry ref={geoRef} args={[W + 2, H + 2, 40, 24]} />
-      <meshStandardMaterial color="#1565c0" emissive="#0d47a1" emissiveIntensity={0.05}
-        roughness={0.15} metalness={0.3} transparent opacity={WATER_OPACITY} />
+    <mesh position={[0, WATER_Y, z]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
+      <planeGeometry args={[W, 1, 32, 8]} />
+      <shaderMaterial
+        ref={materialRef}
+        transparent
+        depthWrite={false}
+        uniforms={uniforms}
+        vertexShader={`
+          uniform float uTime;
+          uniform float uSeed;
+          uniform float uReducedMotion;
+          varying vec2 vUv;
+          varying float vWave;
+
+          void main() {
+            vUv = uv;
+            float motion = mix(1.0, 0.0, uReducedMotion);
+            float waveA = sin(position.x * 2.4 + uTime * 1.4 + uSeed) * 0.022 * motion;
+            float waveB = cos(position.y * 5.2 + uTime * 1.9 + uSeed * 0.7) * 0.012 * motion;
+            float waveC = sin((position.x + position.y) * 1.6 + uTime * 1.1) * 0.008 * motion;
+            vWave = waveA + waveB + waveC;
+            vec3 transformed = position;
+            transformed.z += vWave;
+            gl_Position = projectionMatrix * modelViewMatrix * vec4(transformed, 1.0);
+          }
+        `}
+        fragmentShader={`
+          varying vec2 vUv;
+          varying float vWave;
+
+          void main() {
+            vec3 deep = vec3(0.0, 0.2705882353, 0.6274509804);
+            vec3 foam = vec3(0.0352941176, 0.3764705882, 0.7803921569);
+            float ripple = smoothstep(0.012, 0.032, abs(vWave));
+            vec3 color = mix(deep, foam, ripple * 0.45 + vUv.y * 0.16);
+            gl_FragColor = vec4(color, ${WATER_OPACITY.toFixed(1)});
+          }
+        `}
+      />
     </mesh>
+  );
+}
+
+function WaterPlane({ lanes, totalRows, reducedMotion }: { lanes: LaneConfig[]; totalRows: number; reducedMotion: boolean }) {
+  return (
+    <group>
+      {lanes.map((lane, idx) => {
+        if (lane.type !== 'river') return null;
+        const gy = (totalRows - 1 - idx) * CS;
+        return (
+          <WaterStrip
+            key={`water-${idx}`}
+            z={toZ(gy + CS / 2, totalRows)}
+            seed={idx * 0.73}
+            reducedMotion={reducedMotion}
+          />
+        );
+      })}
+    </group>
   );
 }
 
@@ -154,7 +211,7 @@ function BackgroundFill() {
     <group>
       <mesh position={[0, -0.25, 0]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
         <planeGeometry args={[80, 80]} />
-        <meshStandardMaterial color="#1565c0" emissive="#0d47a1" emissiveIntensity={0.03} roughness={0.95} />
+        <meshStandardMaterial color={LEVEL_BACKGROUND} roughness={0.95} />
       </mesh>
     </group>
   );
@@ -810,7 +867,7 @@ export function GameScene({ frogRef, gameState, laneItems, laneItemsRef, levelMo
         <meshStandardMaterial color="#1a472a" roughness={0.9} />
       </mesh>
 
-      <WaterPlane totalRows={totalRows} reducedMotion={reducedMotion} />
+      <WaterPlane lanes={laneConfigs} totalRows={totalRows} reducedMotion={reducedMotion} />
       <LaneTiles lanes={laneConfigs} totalRows={totalRows} />
 
       {/* Lily pads */}
