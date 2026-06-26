@@ -53,7 +53,13 @@ export interface MoveProposal {
 
 export interface PlatformHit {
   item: GameObject;
+  itemIndex: number;
   speed: number;
+  row: number;
+}
+
+export interface PlatformRide {
+  itemIndex: number;
   row: number;
 }
 
@@ -207,6 +213,14 @@ export function checkCollision(frogX: number, frogY: number, obj: GameObject) {
     frogY + CELL_SIZE - m > obj.y;
 }
 
+export function checkPlatformSupport(frogX: number, frogY: number, obj: GameObject) {
+  const m = 2;
+  return frogX + m < obj.x + obj.width &&
+    frogX + CELL_SIZE - m > obj.x &&
+    frogY + m < obj.y + obj.height &&
+    frogY + CELL_SIZE - m > obj.y;
+}
+
 export function buildLaneItems(lanes: LaneConfig[], rows: number) {
   return lanes.map((lane, rowIndex) => lane.items.map((item) => ({
     x: item.startX,
@@ -307,13 +321,31 @@ export function findPlatformHit(
   const rowItems = items[row];
   if (!rowItems) return null;
 
-  for (const item of rowItems) {
-    if (checkCollision(frogX, frogY, item)) {
-      return { item, speed: lane.speed, row };
+  for (let itemIndex = 0; itemIndex < rowItems.length; itemIndex++) {
+    const item = rowItems[itemIndex];
+    if (item && checkPlatformSupport(frogX, frogY, item)) {
+      return { item, itemIndex, speed: lane.speed, row };
     }
   }
 
   return null;
+}
+
+export function getPlatformRideHit(
+  ride: PlatformRide,
+  lanes: LaneConfig[],
+  items: GameObject[][],
+): PlatformHit | null {
+  const lane = lanes[ride.row];
+  const item = items[ride.row]?.[ride.itemIndex];
+  if (!lane || lane.type !== 'river' || !item) return null;
+
+  return {
+    item,
+    itemIndex: ride.itemIndex,
+    speed: lane.speed,
+    row: ride.row,
+  };
 }
 
 export function isGoalColumn(frogX: number) {

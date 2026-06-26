@@ -6,6 +6,27 @@ updated: 2026-06-26
 
 # Context Changelog
 
+## 1.26.16 - 2026-06-27
+
+Changed files and notes:
+
+- [gameCore.ts](../src/gameCore.ts)
+- [gameCore.test.ts](../src/gameCore.test.ts)
+- [useGame.ts](../src/useGame.ts)
+- [Architecture Map](Architecture%20Map.md)
+- [Project audit](PROJECT.mdc)
+
+Reason:
+
+- River collision was skipped during the exact landing tick because the loop continued with the pre-landing frog snapshot.
+- Support was then reacquired through AABB every frame, allowing a moving platform to escape before the frog became attached.
+
+Implementation impact:
+
+- Completed hops are evaluated for collision in the same simulation tick.
+- Initial river support uses its own edge tolerance and creates a stable `row + itemIndex` ride lock.
+- Locked riders inherit platform movement without repeated overlap checks; the lock clears on a new hop, death, restart, goal reset, or level transition.
+
 ## 1.26.15 - 2026-06-27
 
 Changed files and notes:

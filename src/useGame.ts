@@ -21,6 +21,7 @@ import {
   createPostWinState,
   createRoundGameState,
   findPlatformHit,
+  getPlatformRideHit,
   getMoveProposal,
   getLaneAtRow,
   getRowFromY,
@@ -44,6 +45,7 @@ import {
   type FrogState,
   type GameState,
   type BonusItem,
+  type PlatformRide,
 } from './gameCore';
 import {
   activateFlyCombo as activateFlyComboSession,
@@ -129,6 +131,7 @@ export function useGame() {
   const [showSplash, setShowSplash] = useState(false);
   const [musicStarted, setMusicStarted] = useState(false);
   const replayRecorderRef = useRef<ReplayRecorder | null>(null);
+  const platformRideRef = useRef<PlatformRide | null>(null);
 
   const animFrameRef = useRef<number>(0);
   const lastTimeRef = useRef<number>(0);
@@ -207,6 +210,7 @@ export function useGame() {
   }, []);
 
   const resetFrog = useCallback((rows: number) => {
+    platformRideRef.current = null;
     frogRef.current = createInitialFrog(rows);
     setDeathAnimation(false);
     setShowSplash(false);
@@ -488,6 +492,7 @@ export function useGame() {
     });
 
     frogRef.current = createInitialFrog(nextLevelData.rows);
+    platformRideRef.current = null;
     setDeathAnimation(false);
     setShowSplash(false);
     rebuildLaneItems(nextLevelData.lanes, nextLevelData.rows);
@@ -522,7 +527,13 @@ export function useGame() {
     }
 
     setDeathAnimation(true);
-    frogRef.current = { ...frogRef.current, alive: false, isHopping: false };
+    platformRideRef.current = null;
+    frogRef.current = {
+      ...frogRef.current,
+      alive: false,
+      isHopping: false,
+      riding: false,
+    };
 
     deathTimeoutRef.current = window.setTimeout(() => {
       deathTimeoutRef.current = null;
@@ -550,6 +561,7 @@ export function useGame() {
     if (!proposal) return;
 
     playHop();
+    platformRideRef.current = null;
     frogRef.current = {
       ...frogRef.current,
       startPos: proposal.startPos,
@@ -557,6 +569,7 @@ export function useGame() {
       isHopping: true,
       hopStart: performance.now(),
       direction,
+      riding: false,
     };
 
     const newRow = getRowFromY(rowsRef.current, proposal.targetPos.y);
@@ -721,17 +734,18 @@ export function useGame() {
 
       laneItemsRef.current = advanceLaneItems(laneItemsRef.current, lanes, speedMul);
 
+      let activeFrog = f;
       if (f.isHopping) {
         const progress = Math.min((timestamp - f.hopStart) / HOP_DURATION, 1);
         if (progress >= 1) {
-          frogRef.current = {
+          activeFrog = {
             ...f,
             pos: { ...f.targetPos },
             isHopping: false,
           };
         } else {
           const eased = easeOutQuad(progress);
-          frogRef.current = {
+          activeFrog = {
             ...f,
             pos: {
               x: f.startPos.x + (f.targetPos.x - f.startPos.x) * eased,
@@ -739,28 +753,36 @@ export function useGame() {
             },
           };
         }
+        frogRef.current = activeFrog;
       }
 
-      if (!f.isHopping && f.alive) {
-        const currentRow = getRowFromY(rows, f.pos.y);
+      if (!activeFrog.isHopping && activeFrog.alive) {
+        const currentRow = getRowFromY(rows, activeFrog.pos.y);
         const lane = getLaneAtRow(lanes, currentRow);
         const items = laneItemsRef.current;
         const bonuses = bonusItemsRef.current;
 
         for (let i = 0; i < bonuses.length; i++) {
           const bonus = bonuses[i];
-          if (bonus && !bonus.collected && checkBonusCollision(f.pos.x, f.pos.y, bonus)) {
+          if (bonus && !bonus.collected && checkBonusCollision(activeFrog.pos.x, activeFrog.pos.y, bonus)) {
             collectBonus(i);
             break;
           }
         }
 
         if (lane) {
+          if (!isRiverLane(lane)) {
+            platformRideRef.current = null;
+            if (frogRef.current.riding) {
+              frogRef.current = { ...frogRef.current, riding: false };
+            }
+          }
+
           if (isRoadLane(lane) && !flags.noRoadCollision) {
             const rowItems = items[currentRow];
             if (rowItems) {
               for (const item of rowItems) {
-                if (checkCollision(f.pos.x, f.pos.y, item)) {
+                if (checkCollision(activeFrog.pos.x, activeFrog.pos.y, item)) {
                   handleDeath(false);
                   break;
                 }
@@ -769,18 +791,40 @@ export function useGame() {
           }
 
           if (isRiverLane(lane)) {
-            const platform = findPlatformHit(f.pos.x, f.pos.y, rows, lanes, items);
+            const currentRide = platformRideRef.current?.row === currentRow
+              ? platformRideRef.current
+              : null;
+            if (platformRideRef.current && !currentRide) {
+              platformRideRef.current = null;
+            }
+            const lockedPlatform = currentRide
+              ? getPlatformRideHit(currentRide, lanes, items)
+              : null;
+            if (platformRideRef.current && !lockedPlatform) {
+              platformRideRef.current = null;
+            }
+            const platform = lockedPlatform
+              ?? findPlatformHit(activeFrog.pos.x, activeFrog.pos.y, rows, lanes, items);
             if (platform) {
-              const nx = f.pos.x + platform.speed * speedMul;
-              const adjustedNx = currentAnchorActiveRef.current ? f.pos.x : nx;
+              const newlyAttached = !lockedPlatform;
+              if (newlyAttached) {
+                platformRideRef.current = {
+                  itemIndex: platform.itemIndex,
+                  row: platform.row,
+                };
+              }
+              const platformDelta = newlyAttached ? 0 : platform.speed * speedMul;
+              const nx = activeFrog.pos.x + platformDelta;
+              const adjustedNx = currentAnchorActiveRef.current ? activeFrog.pos.x : nx;
+              const appliedDelta = adjustedNx - activeFrog.pos.x;
               if (adjustedNx < -BOARD_EDGE_BUFFER || adjustedNx > BOARD_WIDTH - BOARD_EDGE_BUFFER) {
                 if (!flags.noRiverDeath) handleDeath(true);
               } else {
                 frogRef.current = {
                   ...frogRef.current,
                   pos: { ...frogRef.current.pos, x: adjustedNx },
-                  startPos: { ...frogRef.current.startPos, x: currentAnchorActiveRef.current ? frogRef.current.startPos.x : frogRef.current.startPos.x + platform.speed * speedMul },
-                  targetPos: { ...frogRef.current.targetPos, x: currentAnchorActiveRef.current ? frogRef.current.targetPos.x : frogRef.current.targetPos.x + platform.speed * speedMul },
+                  startPos: { ...frogRef.current.startPos, x: frogRef.current.startPos.x + appliedDelta },
+                  targetPos: { ...frogRef.current.targetPos, x: frogRef.current.targetPos.x + appliedDelta },
                   riding: true,
                 };
               }
@@ -792,7 +836,7 @@ export function useGame() {
           if (isGoalLane(lane)) {
             const goalIdx = flags.forceGoal
               ? gameStateRef.current.goalsReached.findIndex((value) => !value)
-              : isGoalColumn(f.pos.x);
+              : isGoalColumn(activeFrog.pos.x);
 
             if (goalIdx !== -1 && !gs.goalsReached[goalIdx]) {
               maxRowRef.current = 0;
@@ -853,6 +897,7 @@ export function useGame() {
           paused: devFlagsRef.current.stepSimulation || prev.paused,
         }));
         frogRef.current = createInitialFrog(nextLevelData.rows);
+        platformRideRef.current = null;
         setDeathAnimation(false);
         setShowSplash(false);
         rebuildLaneItems(nextLevelData.lanes, nextLevelData.rows);

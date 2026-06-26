@@ -12,12 +12,14 @@ import {
   getLevelClearBonus,
   getTimeChallengeBonus,
   checkCollision,
+  checkPlatformSupport,
   checkBonusCollision,
   createInitialFrog,
   createInitialGameState,
   createPostWinState,
   createRoundGameState,
   findPlatformHit,
+  getPlatformRideHit,
   getLaneAtRow,
   getMoveProposal,
   getRowFromY,
@@ -74,9 +76,37 @@ describe('game core', () => {
 
     expect(checkCollision(frogX, frogY, items[1][0]!)).toBe(true);
     expect(findPlatformHit(frogX, frogY, lanes.length, lanes, items)).toMatchObject({
+      itemIndex: 0,
       row: 1,
       speed: 0.75,
     });
+    expect(checkPlatformSupport(53, frogY, { ...items[1][0]!, x: 100 })).toBe(true);
+    expect(checkPlatformSupport(49, frogY, { ...items[1][0]!, x: 100 })).toBe(false);
+  });
+
+  it('keeps a stable platform lock after the platform moves away from the landing point', () => {
+    const lanes: LaneConfig[] = [
+      { type: 'safe', speed: 0, items: [] },
+      { type: 'river', speed: 0.75, items: [{ width: 2, startX: 4, variant: 'turtle' }] },
+      { type: 'goal', speed: 0, items: [] },
+    ];
+    const items = buildLaneItems(lanes, lanes.length);
+    const hit = findPlatformHit(20, CELL_SIZE, lanes.length, lanes, items);
+    expect(hit).not.toBeNull();
+    if (!hit) return;
+
+    const movedItems = advanceLaneItems(items, lanes, 200);
+    expect(findPlatformHit(20, CELL_SIZE, lanes.length, lanes, movedItems)).toBeNull();
+    expect(getPlatformRideHit(
+      { row: hit.row, itemIndex: hit.itemIndex },
+      lanes,
+      movedItems,
+    )).toMatchObject({
+      itemIndex: 0,
+      row: 1,
+      speed: 0.75,
+    });
+    expect(getPlatformRideHit({ row: 1, itemIndex: 99 }, lanes, movedItems)).toBeNull();
   });
 
   it('builds deterministic bonus pickups on safe rows', () => {

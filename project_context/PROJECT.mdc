@@ -43,6 +43,7 @@ Result: production build succeeds.
 - Unit tests cover movement, collision, level structure, transition helpers, dev flags, storage, view math, metrics adapter behavior, metrics persistence, and replay snapshot encoding/decoding.
 - Restart behavior now uses an explicit action instead of a synthetic keyboard event.
 - Runtime frog and lane motion now live in refs, keeping React state on coarse UI and lifecycle boundaries.
+- River landings now acquire a stable platform lock in the same simulation tick, so logs and turtles carry the frog without per-frame AABB reacquisition.
 - Touch controls now stay visible as the primary mobile input path, while keyboard hints are still gated to fine-pointer devices.
 - Audio cleanup now disconnects one-shot nodes after playback and detaches active music nodes on stop.
 - Playable top bounds and river edge buffers now use named constants from `src/gameConstants.ts`.
@@ -182,7 +183,7 @@ Risk level: medium.
 
 - Collision is an AABB check in grid-space with a fixed 6px margin.
 - Road collisions are checked only after hop completion, so the frog may visually pass through a vehicle during hop animation without collision until landing.
-- River platform support uses the same AABB helper as road collision. This makes platform tolerance and hazard tolerance identical even though they should usually differ.
+- River platform support uses a dedicated edge tolerance for initial landing, then keeps a stable platform lock until the next jump, death, or reset.
 - Goal detection uses exact column membership against five lily pad columns. That is simple and deterministic.
 - Death can be triggered while riding a platform out of bounds, using a half-cell tolerance.
 - Movement prohibits reaching the decoration row by blocking `newY < CELL_SIZE`. This matches the decorative top row but should be expressed as a named playable-row boundary.
