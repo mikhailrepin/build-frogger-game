@@ -28,6 +28,8 @@ const BOARD_PLINTH_Y = -0.2;
 const BOARD_PLINTH_HEIGHT = 0.3;
 const BOARD_PLINTH_MARGIN = 0.5;
 const FROG_SHADOW_Y = -0.27;
+const ROAD_MARKING_Y_OFFSET = 0.018;
+const ROAD_MARKING_HEIGHT = 0.006;
 const CAMERA_BASE_X = 6;
 const CAMERA_BASE_Z = 6;
 const CAMERA_BASE_ZOOM = 55;
@@ -194,15 +196,15 @@ function RoadDetails({ gy, y, totalRows }: { gy: number; y: number; totalRows: n
   return (
     <group>
       {Array.from({ length: COLS }).map((_, i) => (
-        <mesh key={i} position={[toX(i * CS + CS / 2), y + 0.003, z]}>
-          <boxGeometry args={[0.4, 0.004, 0.04]} />
-          <meshStandardMaterial color="#9e9e9e" roughness={0.8} />
+        <mesh key={i} position={[toX(i * CS + CS / 2), y + ROAD_MARKING_Y_OFFSET, z]}>
+          <boxGeometry args={[0.4, ROAD_MARKING_HEIGHT, 0.04]} />
+          <meshStandardMaterial color="#9e9e9e" roughness={0.8} depthWrite={false} />
         </mesh>
       ))}
       {[-0.46, 0.46].map((dz, i) => (
-        <mesh key={`e${i}`} position={[0, y + 0.003, z + dz]}>
-          <boxGeometry args={[W, 0.004, 0.03]} />
-          <meshStandardMaterial color="#fdd835" emissive="#fdd835" emissiveIntensity={0.15} roughness={0.6} />
+        <mesh key={`e${i}`} position={[0, y + ROAD_MARKING_Y_OFFSET, z + dz]}>
+          <boxGeometry args={[W, ROAD_MARKING_HEIGHT, 0.03]} />
+          <meshStandardMaterial color="#fdd835" emissive="#fdd835" emissiveIntensity={0.15} roughness={0.6} depthWrite={false} />
         </mesh>
       ))}
     </group>

@@ -193,8 +193,7 @@ export default function App() {
         style={{ paddingTop: 'max(10px, env(safe-area-inset-top))' }}
       >
         <div
-          className="liquid-glass ui-font pointer-events-auto flex h-14 min-w-0 max-w-[720px] items-center justify-between rounded-[20px] p-1 text-[var(--ui-fg)] min-[520px]:min-w-[380px]"
-          style={{ width: 'min(calc(100vw - 24px), 480px)' }}
+          className="liquid-glass ui-font pointer-events-auto flex h-14 w-[clamp(380px,calc(100vw-24px),720px)] items-center justify-between rounded-[20px] p-1 text-[var(--ui-fg)]"
         >
           <div className="flex min-w-[86px] shrink-0 items-center gap-2 px-2 min-[390px]:min-w-[100px]">
             <img src={UI_ASSETS.coins} alt="" className="h-6 w-6 shrink-0" draggable={false} />

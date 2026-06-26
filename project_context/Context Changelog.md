@@ -6,6 +6,24 @@ updated: 2026-06-26
 
 # Context Changelog
 
+## 1.26.8 - 2026-06-26
+
+Changed files and notes:
+
+- [App.tsx](../src/App.tsx)
+- [Scene.tsx](../src/Scene.tsx)
+- [Architecture Map](Architecture%20Map.md)
+
+Reason:
+
+- The top HUD needed to enforce the Figma width range of `380px` minimum and `720px` maximum.
+- Road markings shimmered during camera movement because thin line meshes sat too close to the road surface.
+
+Implementation impact:
+
+- Top HUD sizing should stay on the `380px` to `720px` clamp unless a newer design node supersedes it.
+- Road-detail changes should preserve the dedicated marking height and non-writing depth material to avoid z-fighting.
+
 ## 1.26.7 - 2026-06-26
 
 Changed files and notes:
