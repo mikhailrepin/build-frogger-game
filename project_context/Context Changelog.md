@@ -6,6 +6,22 @@ updated: 2026-06-26
 
 # Context Changelog
 
+## 1.26.9 - 2026-06-26
+
+Changed files and notes:
+
+- [Scene.tsx](../src/Scene.tsx)
+
+Reason:
+
+- Level background now matches the water color for a flatter temporary visual baseline.
+- Lily pad flowers are now centered on the leaf and scaled up to better match the reference crop.
+
+Implementation impact:
+
+- Agents should keep the temporary level background color aligned with the canal water color until a new art direction overrides it.
+- Lily pad flower placement should remain centered and use the `1.5x` scale unless a newer Figma reference supersedes it.
+
 ## 1.26.8 - 2026-06-26
 
 Changed files and notes:

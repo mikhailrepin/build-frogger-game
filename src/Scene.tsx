@@ -154,7 +154,7 @@ function BackgroundFill() {
     <group>
       <mesh position={[0, -0.25, 0]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
         <planeGeometry args={[80, 80]} />
-        <meshStandardMaterial color="#2e7d32" roughness={0.95} />
+        <meshStandardMaterial color="#1565c0" emissive="#0d47a1" emissiveIntensity={0.03} roughness={0.95} />
       </mesh>
     </group>
   );
@@ -550,7 +550,7 @@ function Flower3D({ reducedMotion }: { reducedMotion: boolean }) {
   const ref = useRef<THREE.Group>(null);
   useFrame(({ clock }) => { if (ref.current) ref.current.rotation.y = reducedMotion ? 0 : clock.getElapsedTime() * 0.4; });
   return (
-    <group ref={ref} position={[0.18, 0.06, -0.12]}>
+    <group ref={ref} position={[0, 0.06, 0]} scale={1.5}>
       {[0, 72, 144, 216, 288].map((a, i) => (
         <mesh key={i} position={[Math.cos(a * Math.PI / 180) * 0.06, 0, Math.sin(a * Math.PI / 180) * 0.06]} rotation={[-Math.PI / 4, 0, a * Math.PI / 180]}>
           <sphereGeometry args={[0.04, 6, 6]} /><meshStandardMaterial color="#f8bbd0" emissive="#f48fb1" emissiveIntensity={0.3} roughness={0.5} /></mesh>
