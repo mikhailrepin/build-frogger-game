@@ -6,6 +6,23 @@ updated: 2026-06-26
 
 # Context Changelog
 
+## 1.26.2 - 2026-06-26
+
+Changed files and notes:
+
+- [useGame.ts](../src/useGame.ts)
+- [Architecture Map](Architecture%20Map.md)
+
+Reason:
+
+- Runtime obstacle and platform positions were being reset from React state on unrelated rerenders, including the once-per-second HUD timer tick.
+- Lane-motion refs now keep ownership of live positions between renders and are only reseeded when lane state is intentionally rebuilt.
+
+Implementation impact:
+
+- Agents should treat mutable lane motion in [useGame.ts](../src/useGame.ts) as ref-owned runtime state.
+- UI timers or HUD state changes must not write stale lane snapshots back into the runtime ref during render.
+
 ## 1.26.1 - 2026-06-26
 
 Changed files and notes:

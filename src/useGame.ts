@@ -142,13 +142,18 @@ export function useGame() {
   const maxRowRef = useRef(0);
 
   gameStateRef.current = gameState;
-  laneItemsRef.current = laneItems;
   bonusItemsRef.current = bonusItems;
   shieldActiveRef.current = shieldActive;
   slowTimeActiveRef.current = slowTimeActive;
   currentAnchorActiveRef.current = currentAnchorActive;
   superHopActiveRef.current = superHopActive;
   flyComboActiveRef.current = flyComboActive;
+
+  useEffect(() => {
+    // Lane motion advances in refs between renders. Rehydrating the ref from React
+    // state on every render rewinds obstacle/platform positions whenever HUD state changes.
+    laneItemsRef.current = laneItems;
+  }, [laneItems]);
 
   const clearPendingTimers = useCallback(() => {
     if (deathTimeoutRef.current !== null) {
