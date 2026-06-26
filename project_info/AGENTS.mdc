@@ -1,0 +1,93 @@
+# Agent Development Manifest
+
+This file defines how agents must work in this project.
+
+## Project Principles
+
+- Preserve the current stack unless the user explicitly asks for a migration: React, Vite, Tailwind CSS, Three.js, React Three Fiber.
+- Treat this as a game project, not a generic React dashboard.
+- Keep the playfield readable, responsive, and fast.
+- Prefer deterministic game rules over visual-only fixes.
+- Do not hide technical debt behind UI polish.
+
+## Architecture Rules
+
+- Separate simulation from rendering.
+- Core gameplay rules must not depend on React, R3F, DOM, Web Audio, storage, or analytics.
+- React state is for coarse UI state. High-frequency simulation data should live in refs, a simulation object, or a dedicated store.
+- Rendering components should receive a narrow view model and avoid owning gameplay rules.
+- Input must be mapped to semantic actions: `move`, `pause`, `restart`, `toggleDevMode`, `useAbility`.
+- Audio, persistence, analytics, and dev tools are adapters around the game core.
+- Avoid centralizing every feature in `useGame.ts`. Extract pure modules when rules become testable.
+
+## Testing Rules
+
+- Do not use Playwright or browser tests when the task explicitly forbids them.
+- For gameplay changes, add or update unit tests before considering the change complete.
+- Required unit-test areas:
+  - row and column mapping;
+  - movement bounds and snapping;
+  - road collision;
+  - river platform support;
+  - goal trigger rules;
+  - scoring;
+  - lives and game-over transitions;
+  - level generation constraints;
+  - developer-mode overrides.
+- Every physics or collision change must include positive and negative cases.
+- Keep tests deterministic. Use seeded data and explicit state snapshots.
+
+## UI and Visual Rules
+
+- DOM is the default layer for HUD, menus, buttons, pause, settings, and text-heavy UI.
+- R3F/Three.js is the default layer for the playfield, characters, obstacles, environment, particles, and camera.
+- Protect the center and lower-middle playfield during normal gameplay.
+- Keep persistent HUD compact.
+- Support compact mobile and desktop layouts explicitly.
+- Do not rely on emoji for critical status communication when a controlled icon or asset is feasible.
+- Use design constants for lane heights, platform heights, frog offsets, shadows, colors, and effect durations.
+- Avoid one-off inline styles when a reusable component or CSS variable is appropriate.
+
+## Performance Rules
+
+- Avoid per-frame React state updates for entity positions.
+- Avoid per-frame allocation of large arrays or entity objects in hot paths.
+- Reuse Three.js materials and geometries where practical.
+- Prefer instancing or pooled meshes for repeated decoration.
+- Keep water, particle, lighting, and shadow costs bounded.
+- Monitor bundle size because the project uses single-file Vite output.
+
+## Gameplay Rules
+
+- The primary loop is: move frog, avoid road hazards, ride river platforms, reach unique lily pads, complete all goals, advance level.
+- Any new mechanic must preserve this loop unless explicitly scoped as a mode.
+- Difficulty changes must be explainable through rules: speed, lane count, platform spacing, hazard density, modifiers, or objectives.
+- Bonus abilities must be temporary, visible, testable, and reversible.
+- Game-over and restart behavior must be explicit actions, not synthetic keyboard events.
+
+## Developer Mode Rules
+
+- Developer mode must never silently affect production behavior.
+- Developer mode flags must be explicit and test-covered.
+- Useful flags include invulnerability, disabled collision, infinite lives, speed scale, level jump, force goal, force death, collision-box display, and step simulation.
+- Debug UI must not obscure normal play unless explicitly enabled.
+
+## Change Hygiene
+
+- Read the surrounding code before editing.
+- Keep edits scoped to the requested behavior.
+- Do not rewrite architecture opportunistically while fixing a narrow bug.
+- Do not remove user changes unless the user explicitly requests it.
+- Prefer small pure functions for rules that need tests.
+- Document new rules in `project_info` when they affect gameplay, testing, or agent behavior.
+
+## Completion Criteria
+
+A change is complete only when:
+
+- the implementation matches the requested behavior;
+- relevant unit tests exist or the reason for missing tests is documented;
+- `npm run build` passes unless the task is documentation-only and build is not relevant;
+- no browser or Playwright tests were used when prohibited;
+- new technical debt is recorded instead of hidden;
+- user-facing behavior and developer-mode behavior remain clearly separated.

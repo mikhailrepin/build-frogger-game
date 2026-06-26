@@ -1,0 +1,294 @@
+# Frogger Game Project Audit
+
+## Audit Scope
+
+Static project audit of a React 19 + Vite + Tailwind + React Three Fiber browser game. Browser execution, Playwright, and visual browser tests were intentionally not used. Validation included source inspection and a production build check.
+
+Verified command:
+
+```bash
+npm run build
+```
+
+Result: production build succeeds.
+
+## Current Architecture
+
+- Runtime stack: React, React DOM, Vite, Tailwind CSS, Three.js, React Three Fiber, Drei dependency present but not used in the inspected code.
+- Main UI shell: `src/App.tsx`.
+- Gameplay state and loop: `src/useGame.ts`.
+- Rendering and 3D procedural scene: `src/Scene.tsx`.
+- Constants and procedural level generation: `src/gameConstants.ts`.
+- Procedural Web Audio system: `src/audio.ts`.
+- The project is a custom React/R3F game implementation, not a Phaser-based 2D game.
+
+## Stability
+
+### Performance
+
+Risk level: high for longer sessions and higher levels.
+
+- `useGame` runs the core game loop through `requestAnimationFrame` and updates React state every frame for moving lane items and frog animation. This forces React reconciliation and R3F prop propagation on every frame instead of keeping high-frequency simulation data in mutable refs or an external simulation store.
+- Lane item updates allocate new arrays and new item objects every frame. This creates avoidable garbage collection pressure.
+- Water animation mutates a subdivided plane every R3F frame. The vertex count is moderate, but it should remain bounded and should be measured once level size and device targets are finalized.
+- The 3D scene is entirely procedural and creates many separate meshes for grass, vehicles, frog parts, pads, particles, flowers, and lights. This is acceptable for a prototype but will not scale well without instancing, mesh reuse, or geometry/material pooling.
+- The build emits a single inlined HTML payload of about 1.14 MB before gzip. This is acceptable for a small game, but asset growth should be monitored because `vite-plugin-singlefile` removes normal chunking benefits.
+
+Recommended direction:
+
+- Move deterministic simulation stepping out of React render state.
+- Keep frequently changing entity positions in refs or a dedicated simulation object.
+- Use React state only for coarse UI state: score, lives, level, game over, pause, goal completion.
+- Add a lightweight perf counter or dev overlay before adding more visual density.
+
+### Component Approach
+
+Risk level: medium.
+
+- `Scene.tsx` has a useful component split by visual domain: camera follow, water, lane tiles, frog, vehicles, logs, lily pads, and particles.
+- `useGame.ts` mixes simulation, collision, scoring, level lifecycle, keyboard input, audio triggers, timers, and state synchronization in one hook.
+- The boundary between simulation and rendering is not clean enough for reliable unit testing. Collision helpers and level progression rules are nested in the hook instead of exported as pure functions.
+- UI controls are directly coupled to `moveFrog`, while keyboard restart is simulated by dispatching a synthetic `KeyboardEvent` from the Play Again button. This should become an explicit `restartGame` action.
+
+Recommended direction:
+
+- Extract pure modules for movement, row mapping, collision, scoring, level generation validation, and game state transitions.
+- Keep input mapping in one module and expose semantic actions: `move`, `pause`, `restart`, `toggleDevMode`.
+- Keep render components stateless where possible and driven by a narrow view model.
+
+### Memory Leaks
+
+Risk level: medium.
+
+- `requestAnimationFrame` is cancelled on hook cleanup, which is good.
+- Keyboard and first-interaction audio listeners are removed on cleanup, which is good.
+- Level-complete timeout is cleaned up.
+- Death timeout inside `handleDeath` is not tracked or cleared on unmount. It can call state setters after unmount if the component is removed during the death delay.
+- Audio music interval is cleared only by `stopMusic`, usually on game over. There is no global unmount cleanup path that stops music when the React tree unmounts.
+- Procedural one-shot audio nodes are stopped but not explicitly disconnected after `ended`. Browsers usually collect stopped nodes, but explicit cleanup is safer for long sessions.
+
+Recommended direction:
+
+- Track death/reset timers in refs and clear them in hook cleanup.
+- Add `disposeAudio` or a hook-level cleanup that calls `stopMusic`.
+- Disconnect one-shot oscillator/noise graphs on `ended`.
+
+### Cyclic Dependency Risk
+
+Risk level: low now, medium if features are added inside the current hook.
+
+- Current imports are mostly one-way: `App -> useGame / Scene`, `useGame -> constants / audio`, `Scene -> constants`.
+- The larger risk is architectural cyclicity, not module import cycles: game rules, audio side effects, input, UI restart, and render state are already tightly coupled through `useGame`.
+- If dev mode, abilities, bonuses, settings, persistence, and analytics are added directly to `useGame`, the hook will become a central dependency sink.
+
+Recommended direction:
+
+- Define a stable core domain layer with no React imports.
+- Keep audio, storage, analytics, UI, and renderer as adapters around the domain layer.
+
+## UI / UX
+
+### Responsive Readiness
+
+Risk level: medium-high.
+
+- The canvas fills the viewport and the HUD is DOM-based, which is the right direction for a browser game.
+- The camera uses a fixed orthographic zoom and only partial Z-follow for larger levels. There is no viewport-aware camera fitting for narrow mobile screens or wide desktop screens.
+- HUD layout uses a centered max-width row with fixed gaps and fixed 48px touch buttons. It may work on many phones, but the top bar can become crowded on very narrow screens because score, title, level, and lives remain in one horizontal row.
+- Touch controls are always visible, including desktop, and keyboard hints are always visible, including mobile. This wastes playfield space.
+
+Recommended direction:
+
+- Add CSS breakpoints for compact HUD mode.
+- Hide touch controls on pointer-fine devices and hide keyboard hints on touch-first devices.
+- Add camera fitting based on board bounds and viewport aspect ratio.
+
+### Visual Collision and Layout Risks
+
+Risk level: medium.
+
+- Top HUD and bottom controls overlay the playfield. They are small, but they can still cover active lanes because there is no safe-area reservation or camera framing offset.
+- Game-over and pause overlays intentionally cover the entire game. This is acceptable.
+- Local clipping planes are enabled and applied to vehicles/logs, reducing edge overflow. This is a good choice.
+- The frog is manually raised on river lanes to avoid sinking into platforms. This fixes a visible overlap but is hard-coded and may drift if log/turtle heights change.
+- Water is rendered as a broad plane across the whole board, while non-river lane tiles are placed above it. This can look fine, but water may visually appear under roads/safe zones if depth ordering or material opacity changes.
+
+Recommended direction:
+
+- Define visual height constants for lane surfaces, platforms, frog feet, and shadows.
+- Keep collision boxes and visual meshes documented separately.
+- Add static layout tests for HUD class variants and camera fit calculations.
+
+### Physical Parameters, Collision, and Trigger Zones
+
+Risk level: medium.
+
+- Collision is an AABB check in grid-space with a fixed 6px margin.
+- Road collisions are checked only after hop completion, so the frog may visually pass through a vehicle during hop animation without collision until landing.
+- River platform support uses the same AABB helper as road collision. This makes platform tolerance and hazard tolerance identical even though they should usually differ.
+- Goal detection uses exact column membership against five lily pad columns. That is simple and deterministic.
+- Death can be triggered while riding a platform out of bounds, using a half-cell tolerance.
+- Movement prohibits reaching the decoration row by blocking `newY < CELL_SIZE`. This matches the decorative top row but should be expressed as a named playable-row boundary.
+
+Recommended direction:
+
+- Split collision policies: road damage, river support, goal trigger, and out-of-bounds.
+- Add unit tests for row mapping, playable bounds, target snapping, goal indexing, platform riding, and vehicle collisions.
+- Consider collision checks during hop landing windows if visual fairness becomes a problem.
+
+### Game Interface
+
+Risk level: medium.
+
+- HUD hierarchy is readable: score, best, level, lives, pause/game-over/win overlays.
+- The style is coherent with arcade Frogger: dark translucent panels, mono typography, bright green/amber accents.
+- The UI uses emoji for frog/lives/status icons. This is quick and recognizable, but it creates inconsistent rendering across platforms.
+- Buttons use inline SVG arrows and fixed inline styles. A reusable control button component would reduce duplication and improve theming.
+- There are no settings for audio, reduced motion, input remapping, or accessibility.
+
+Recommended direction:
+
+- Replace emoji-dependent critical UI with controlled icon assets or mesh/sprite UI.
+- Add a compact pause/settings menu with audio toggle, restart, and dev-mode toggle.
+- Use CSS variables for HUD colors, panel opacity, danger/reward states, and control sizes.
+
+### Graphic Execution
+
+Risk level: medium.
+
+- Frog model is more detailed than the rest of the scene and has strong character readability.
+- Vehicles, logs, turtles, lily pads, flowers, water, grass, and bushes create a complete procedural environment.
+- Visual identity is solid for a prototype but still generic compared with polished arcade web games.
+- There is no sprite/asset pipeline, texture direction, animation state machine, or style guide.
+- Effects are minimal but present: water deformation, death particles, screen shake, bounce-in overlays, lights.
+
+Recommended direction:
+
+- Establish an art direction sheet: palette, material roughness, lane height, vehicle silhouettes, frog proportions, FX language.
+- Add instanced grass/props and consistent mesh/material reuse.
+- Improve reward and danger feedback: lane warning pulses, goal capture effect, level transition, near-miss feedback.
+
+## Gameplay
+
+### Main Goal
+
+The main loop is clear: guide the frog across road and river lanes into five lily pads, avoid vehicles, stay on platforms, fill all goals, then advance to the next level.
+
+### Event and Level Development
+
+- Levels are procedurally generated from a deterministic seed based on level number.
+- Level size grows from the base layout and caps extra lanes after several levels.
+- Road and river sections alternate with safe zones.
+- Level completion advances automatically after a short win overlay.
+
+Risk:
+
+- Procedural generation is deterministic but not validated for solvability, fairness, or target difficulty.
+- There are no named level phases, biomes, new mechanics, or feature unlocks.
+
+### Adaptive Difficulty and Conditions
+
+- Difficulty scales by level through lane generation speed and an additional runtime speed multiplier.
+- More rows are added through level growth.
+- There is no adaptive difficulty based on player failures, time spent, near misses, or repeated deaths.
+
+Recommended direction:
+
+- Add difficulty bands and validation constraints for generated levels.
+- Add optional assist tuning after repeated deaths: slower hazards for one life, safer platform spacing, or temporary shield.
+
+### Scoring and Penalties
+
+- Score increases by 10 for reaching a new maximum row.
+- Score increases by 50 for reaching a goal.
+- Lives decrement on death.
+- High score is kept only in memory.
+- No time bonus, combo, near-miss bonus, coin/collectible reward, or penalty beyond life loss.
+
+Recommended direction:
+
+- Persist high score in `localStorage`.
+- Add time/efficiency bonuses and optional collectible pickups.
+- Add transparent score events so tests can assert scoring rules.
+
+### Motivation to Continue
+
+Risk level: medium-high.
+
+- Current motivation is classic score chasing and level progression.
+- There are no unlocks, missions, daily goals, cosmetic rewards, power-ups, achievements, or meta-progression.
+- The game can become repetitive because new levels mainly increase length and speed.
+
+Recommended direction:
+
+- Add temporary power-ups, challenge objectives, and visual rewards.
+- Add short-session goals: "reach 3 pads without dying", "collect 5 flies", "finish level under timer".
+
+## Product Metrics
+
+### Engagement Potential
+
+Current engagement drivers:
+
+- Immediate controls.
+- Clear failure.
+- Fast restart.
+- Visible score/lives/level.
+- Familiar Frogger fantasy.
+
+Engagement risks:
+
+- No persistent progression.
+- Limited novelty across levels.
+- No bonus system.
+- No skill-expression rewards beyond survival and score.
+- No analytics instrumentation for retention, completion, deaths per lane, or input mode.
+
+Recommended product metrics:
+
+- First successful move rate.
+- First death time.
+- Level 1 completion rate.
+- Average deaths per lane type.
+- Restart rate after game over.
+- Average session length.
+- Goal completion distribution.
+- Input mode split: keyboard vs touch.
+- Power-up use rate once abilities exist.
+
+### Market and Aesthetic Differentiation
+
+- The 3D procedural presentation differentiates it from many flat Frogger clones.
+- The project does not yet have a strong unique feature beyond 3D visuals.
+- Competitive arcade web games usually benefit from tight game feel, strong reward cadence, polish, and quick novelty loops.
+
+Recommended differentiators:
+
+- A living swamp/city-crossing theme with animated hazards.
+- Temporary abilities that create tactical choices.
+- Dynamic events: rain, night traffic, moving currents, hazard waves.
+- Distinct level modifiers rather than only more speed/rows.
+
+### Bonus System and Temporary Abilities
+
+Recommended additions:
+
+- Shield: blocks one vehicle collision for a short duration.
+- Slow Time: reduces hazard speed temporarily.
+- Super Hop: jumps two cells or crosses a single dangerous lane.
+- Magnet / Fly Trail: attracts collectible flies for score.
+- Current Anchor: prevents horizontal drift on river platforms for a short duration.
+- Bonus should be time-limited, visually explicit, and testable through pure state transitions.
+
+## Critical Technical Debt
+
+1. Extract simulation from React state and make it testable.
+2. Add a test runner and unit tests for collision, movement, level generation, scoring, timers, and game transitions.
+3. Add explicit actions: restart, pause, move, dev-mode toggles.
+4. Track and clear all timers and audio intervals on unmount.
+5. Add camera/HUD responsive rules for mobile and desktop.
+6. Persist high score and isolate storage behind a small adapter.
+7. Introduce dev mode for QA: invulnerability, no collision, level jump, speed scale, force win, force death, show collision boxes.
+8. Define visual constants and reduce hard-coded lane/frog/platform heights.
+9. Add procedural generation constraints and solvability checks.
+10. Add product instrumentation points without coupling analytics to core game rules.

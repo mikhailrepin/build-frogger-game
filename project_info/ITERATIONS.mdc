@@ -1,0 +1,104 @@
+# Процесс дальнейшей разработки
+
+Документ описывает порядок итераций без привязки к реальным дням. Цель процесса: сначала стабилизировать ядро игры и тестируемость, затем улучшать визуал, игровой цикл и продуктовую вовлеченность без смены технологического стека.
+
+## Итерация 1. Критичные уязвимости, баги и технический долг
+
+Цель: зафиксировать фактические риски и превратить аудит в управляемый backlog.
+
+- Составить список критичных багов по категориям: физика, коллизии, состояние игры, UI, аудио, производительность, адаптив.
+- Отдельно пометить риски, которые могут ломать игровой цикл: повторная смерть во время death timeout, некорректная проверка платформы, неочищенные таймеры, чрезмерные React state updates на каждый frame.
+- Зафиксировать технический долг по архитектуре: выделение simulation core, input actions, collision policies, scoring rules, level lifecycle, storage adapter, audio adapter.
+- Добавить issue-формат для каждого долга: symptom, root cause, affected files, acceptance criteria, required tests.
+- Не начинать визуальные улучшения, пока нет минимального тестового контура для игровых правил.
+
+## Итерация 2. Агентский манифест и правила разработки
+
+Цель: обеспечить единый стиль работы всех агентов и разработчиков.
+
+- Использовать [AGENTS.mdc](AGENTS.mdc) как обязательный контракт проекта.
+- Перед правками читать текущую архитектуру, а не внедрять новый стек.
+- Не использовать Playwright и браузерные тесты для задач, где явно указан запрет.
+- Для игровых правил сначала писать или обновлять unit tests.
+- Разделять доменную логику и React/R3F rendering.
+- Любое изменение физики сопровождать таблицей ожидаемых сценариев: движение, границы, столкновение, платформа, цель, смерть, победа.
+- Любое визуальное изменение проверять статически по структуре, CSS и параметрам сцены; полноценную браузерную QA проводить только когда это разрешено отдельной задачей.
+
+## Итерация 3. Тестовый фундамент без Playwright
+
+Цель: покрыть критический долг тестами без браузерной автоматизации.
+
+- Добавить тестовый раннер для unit tests, например Vitest, совместимый с Vite/TypeScript.
+- Вынести чистые функции из `useGame.ts`: row mapping, bounds check, movement snapping, AABB collision, platform support, goal detection, scoring transitions.
+- Покрыть тестами генерацию уровней: стабильность seed, диапазоны скоростей, размеры уровней, наличие start/bank/goal/decoration rows.
+- Покрыть тестами коллизии: road hit, safe miss, river platform hit/miss, out-of-bounds while riding, goal pad success, duplicate goal death.
+- Покрыть тестами скоринг и жизни: row progress score, goal score, death penalty, game over, level completion.
+- Покрыть тестами reducer/state machine после выделения core logic.
+- Добавить `npm test` и `npm run typecheck`, если проект продолжит масштабироваться.
+
+## Итерация 4. Исправление критического технического долга
+
+Цель: стабилизировать ядро без изменения пользовательского поведения.
+
+- Перенести высокочастотную simulation loop из React state в refs или отдельный simulation object.
+- React state оставить для низкочастотного UI-состояния: score, lives, level, goals, pause, game over.
+- Заменить synthetic keyboard restart на явный action `restartGame`.
+- Добавить cleanup для death timeout, level timeout и audio lifecycle.
+- Добавить storage adapter для high score и покрыть его тестами через mock storage.
+- Разделить collision policies: road damage, river support, goal trigger, playable bounds.
+- Ввести named constants для высот lane, frog, platform, water и shadow.
+- Добавить dev-only diagnostics API, но пока без визуального overlay.
+
+## Итерация 5. Улучшение визуала без смены стека
+
+Цель: повысить качество исполнения на текущем React Three Fiber/Three.js стеке.
+
+- Сформировать art direction sheet: палитра, материалы, высоты, силуэты, FX, UI-панели, motion tone.
+- Убрать критические hard-coded визуальные точки: высота frog на river, высота логов/черепах, shadow offset, water opacity.
+- Стабилизировать camera fit: расчет orthographic zoom и offset по board bounds и viewport aspect ratio.
+- Добавить responsive HUD modes: compact mobile, desktop keyboard mode, touch mode.
+- Скрывать touch controls на pointer-fine устройствах, а keyboard hints на touch-first устройствах.
+- Заменить emoji в критичных UI-индикаторах на контролируемые icon/mesh assets или CSS/icon components.
+- Оптимизировать декоративные элементы: instancing для травы/кустов, переиспользование материалов и геометрий.
+- Усилить feedback: goal capture effect, danger pulse, near-miss effect, clean level transition.
+
+## Итерация 6. Глобальное игровое тестирование и developer mode
+
+Цель: ускорить ручную и автоматизированную проверку игрового цикла.
+
+- Добавить developer mode, доступный только в dev-сборке или через явный query flag.
+- Возможности developer mode:
+  - invulnerability;
+  - disable road collision;
+  - disable river drowning;
+  - infinite lives;
+  - force goal reached;
+  - force level complete;
+  - jump to level;
+  - speed multiplier;
+  - show collision boxes;
+  - show row/col under frog;
+  - pause simulation step-by-step.
+- Покрыть developer mode unit tests, чтобы dev-флаги не ломали обычные правила.
+- Подготовить manual QA checklist без Playwright: старт, движение, пауза, смерть, goal, game over, restart, level transition, audio start/stop, mobile layout review, desktop layout review.
+- Когда запрет на браузерные тесты будет снят, отдельно добавить browser smoke tests и screenshot QA.
+
+## Итерация 7. Геймплейная глубина и мотивация
+
+Цель: усилить удержание игрока и разнообразие без поломки core loop.
+
+- Добавить временные способности: shield, slow time, super hop, current anchor.
+- Добавить bonus pickups: flies, time bonus, combo bonus, no-death bonus.
+- Добавить level modifiers: rain, night traffic, fast current, narrow platforms, bonus lane.
+- Добавить короткие objectives: заполнить 3 lily pads без смерти, собрать N бонусов, пройти уровень быстрее лимита.
+- Добавить persistent high score и, при необходимости, локальные achievements.
+- Ввести метрики событий через adapter: start, first move, death, restart, goal, level complete, game over, ability used.
+
+## Итерация 8. Неучтенные моменты
+
+- Проверить accessibility: reduced motion, focus states, semantic buttons, audio toggle.
+- Проверить mobile safe areas: notch, browser bars, landscape mode.
+- Проверить low-end performance: mesh count, material count, garbage allocations, audio node cleanup.
+- Проверить deterministic replay для QA: seed, input sequence, expected state.
+- Добавить документацию по release checklist: build, test, bundle size, manual QA, known risks.
+- Зафиксировать политику зависимостей: не добавлять игровые движки или новый renderer без отдельного архитектурного решения.
