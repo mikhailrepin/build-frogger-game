@@ -30,9 +30,11 @@ const BOARD_PLINTH_MARGIN = 0.5;
 const FROG_SHADOW_Y = -0.27;
 const CAMERA_BASE_Z = 6;
 const CAMERA_BASE_ZOOM = 55;
-const CAMERA_FOLLOW_BLEND = 0.04;
-const CAMERA_FOLLOW_SCALE = 0.6;
-const CAMERA_FOLLOW_DEAD_ZONE = 0.35;
+const CAMERA_FOLLOW_BLEND = 0.07;
+const CAMERA_FOLLOW_SCALE = 0.72;
+const CAMERA_FOLLOW_DEAD_ZONE = 0.18;
+const CAMERA_BOTTOM_SAFE_Z_MOBILE = 1.3;
+const CAMERA_BOTTOM_SAFE_Z_DESKTOP = 0.75;
 
 function toX(v: number) { return v * S - CX; }
 function toZ(v: number, totalRows: number) { return v * S - totalRows / 2; }
@@ -66,7 +68,7 @@ function makeClipPlanes(totalRows: number) {
 
 /* ═══════════════ CAMERA FOLLOW ═══════════════ */
 function CameraFollow({ frogRef, totalRows }: { frogRef: React.MutableRefObject<FrogState>; totalRows: number }) {
-  const { camera } = useThree();
+  const { camera, size } = useThree();
   const targetZ = useRef(0);
 
   useEffect(() => {
@@ -77,19 +79,16 @@ function CameraFollow({ frogRef, totalRows }: { frogRef: React.MutableRefObject<
   }, [camera, totalRows]);
 
   useFrame(() => {
-    if (totalRows <= 17) {
-      targetZ.current = 0;
-      camera.position.z += (CAMERA_BASE_Z - camera.position.z) * CAMERA_FOLLOW_BLEND;
-      return;
-    }
-
-    const desired = toZ(frogRef.current.pos.y + CS / 2, totalRows) * CAMERA_FOLLOW_SCALE;
+    const bottomSafeOffset = size.width < 768 || size.height < 760
+      ? CAMERA_BOTTOM_SAFE_Z_MOBILE
+      : CAMERA_BOTTOM_SAFE_Z_DESKTOP;
+    const desired = toZ(frogRef.current.pos.y + CS / 2, totalRows) * CAMERA_FOLLOW_SCALE + bottomSafeOffset;
     const delta = desired - targetZ.current;
     const softenedTarget = Math.abs(delta) <= CAMERA_FOLLOW_DEAD_ZONE
       ? targetZ.current
       : desired - Math.sign(delta) * CAMERA_FOLLOW_DEAD_ZONE;
     targetZ.current += (softenedTarget - targetZ.current) * CAMERA_FOLLOW_BLEND;
-    const maxShift = (totalRows - 15) / 2 * 0.5;
+    const maxShift = Math.max(1.2, (totalRows - 11) / 2 * 0.6);
     const clamped = Math.max(-maxShift, Math.min(maxShift, targetZ.current));
 
     camera.position.z = CAMERA_BASE_Z + clamped;

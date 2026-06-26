@@ -81,6 +81,16 @@ import {
   stopMusic,
 } from './audio';
 
+type FeaturedBonus = {
+  kind: BonusItem['kind'];
+  expiresAt: number;
+};
+
+type ActiveBonusHud = {
+  kind: BonusItem['kind'];
+  remainingSeconds: number;
+};
+
 export function useGame() {
   const search = typeof window !== 'undefined' ? window.location.search : '';
   const devFlagsRef = useRef<DevFlags>(
@@ -112,6 +122,7 @@ export function useGame() {
   const [currentAnchorActive, setCurrentAnchorActive] = useState(false);
   const [superHopActive, setSuperHopActive] = useState(false);
   const [flyComboActive, setFlyComboActive] = useState(false);
+  const [featuredBonus, setFeaturedBonus] = useState<FeaturedBonus | null>(null);
   const [challengeBonus, setChallengeBonus] = useState(0);
   const [hudClockNow, setHudClockNow] = useState(() => Date.now());
   const [deathAnimation, setDeathAnimation] = useState(false);
@@ -184,6 +195,15 @@ export function useGame() {
       window.clearTimeout(flyComboTimeoutRef.current);
       flyComboTimeoutRef.current = null;
     }
+    setFeaturedBonus(null);
+  }, []);
+
+  const showFeaturedBonus = useCallback((kind: BonusItem['kind'], durationMs: number) => {
+    setFeaturedBonus({ kind, expiresAt: Date.now() + durationMs });
+  }, []);
+
+  const clearFeaturedBonus = useCallback((kind: BonusItem['kind']) => {
+    setFeaturedBonus((current) => (current?.kind === kind ? null : current));
   }, []);
 
   const resetFrog = useCallback((rows: number) => {
@@ -199,7 +219,8 @@ export function useGame() {
     }
     shieldActiveRef.current = false;
     setShieldActive(false);
-  }, []);
+    clearFeaturedBonus('shield');
+  }, [clearFeaturedBonus]);
 
   const clearSlowTime = useCallback(() => {
     if (slowTimeTimeoutRef.current !== null) {
@@ -208,7 +229,8 @@ export function useGame() {
     }
     slowTimeActiveRef.current = false;
     setSlowTimeActive(false);
-  }, []);
+    clearFeaturedBonus('slowTime');
+  }, [clearFeaturedBonus]);
 
   const clearCurrentAnchor = useCallback(() => {
     if (currentAnchorTimeoutRef.current !== null) {
@@ -217,7 +239,8 @@ export function useGame() {
     }
     currentAnchorActiveRef.current = false;
     setCurrentAnchorActive(false);
-  }, []);
+    clearFeaturedBonus('currentAnchor');
+  }, [clearFeaturedBonus]);
 
   const clearSuperHop = useCallback(() => {
     if (superHopTimeoutRef.current !== null) {
@@ -226,55 +249,64 @@ export function useGame() {
     }
     superHopActiveRef.current = false;
     setSuperHopActive(false);
-  }, []);
+    clearFeaturedBonus('superHop');
+  }, [clearFeaturedBonus]);
 
   const activateShield = useCallback(() => {
     clearShield();
     shieldActiveRef.current = true;
     setShieldActive(true);
+    showFeaturedBonus('shield', SHIELD_DURATION_MS);
     recordGameEvent('ability_used', { ability: 'shield' });
     shieldTimeoutRef.current = window.setTimeout(() => {
       shieldTimeoutRef.current = null;
       shieldActiveRef.current = false;
       setShieldActive(false);
+      clearFeaturedBonus('shield');
     }, SHIELD_DURATION_MS);
-  }, [clearShield]);
+  }, [clearShield, clearFeaturedBonus, showFeaturedBonus]);
 
   const activateSlowTime = useCallback(() => {
     clearSlowTime();
     slowTimeActiveRef.current = true;
     setSlowTimeActive(true);
+    showFeaturedBonus('slowTime', SLOW_TIME_DURATION_MS);
     recordGameEvent('ability_used', { ability: 'slow_time' });
     slowTimeTimeoutRef.current = window.setTimeout(() => {
       slowTimeTimeoutRef.current = null;
       slowTimeActiveRef.current = false;
       setSlowTimeActive(false);
+      clearFeaturedBonus('slowTime');
     }, SLOW_TIME_DURATION_MS);
-  }, [clearSlowTime]);
+  }, [clearSlowTime, clearFeaturedBonus, showFeaturedBonus]);
 
   const activateCurrentAnchor = useCallback(() => {
     clearCurrentAnchor();
     currentAnchorActiveRef.current = true;
     setCurrentAnchorActive(true);
+    showFeaturedBonus('currentAnchor', CURRENT_ANCHOR_DURATION_MS);
     recordGameEvent('ability_used', { ability: 'current_anchor' });
     currentAnchorTimeoutRef.current = window.setTimeout(() => {
       currentAnchorTimeoutRef.current = null;
       currentAnchorActiveRef.current = false;
       setCurrentAnchorActive(false);
+      clearFeaturedBonus('currentAnchor');
     }, CURRENT_ANCHOR_DURATION_MS);
-  }, [clearCurrentAnchor]);
+  }, [clearCurrentAnchor, clearFeaturedBonus, showFeaturedBonus]);
 
   const activateSuperHop = useCallback(() => {
     clearSuperHop();
     superHopActiveRef.current = true;
     setSuperHopActive(true);
+    showFeaturedBonus('superHop', SUPER_HOP_DURATION_MS);
     recordGameEvent('ability_used', { ability: 'super_hop' });
     superHopTimeoutRef.current = window.setTimeout(() => {
       superHopTimeoutRef.current = null;
       superHopActiveRef.current = false;
       setSuperHopActive(false);
+      clearFeaturedBonus('superHop');
     }, SUPER_HOP_DURATION_MS);
-  }, [clearSuperHop]);
+  }, [clearSuperHop, clearFeaturedBonus, showFeaturedBonus]);
 
   const clearFlyCombo = useCallback(() => {
     if (flyComboTimeoutRef.current !== null) {
@@ -284,19 +316,21 @@ export function useGame() {
     challengeSessionRef.current = clearFlyComboSession(challengeSessionRef.current);
     flyComboActiveRef.current = false;
     setFlyComboActive(false);
-  }, []);
+    clearFeaturedBonus('fly');
+  }, [clearFeaturedBonus]);
 
   const activateFlyCombo = useCallback(() => {
     clearFlyCombo();
     challengeSessionRef.current = activateFlyComboSession(challengeSessionRef.current);
     flyComboActiveRef.current = true;
     setFlyComboActive(true);
+    showFeaturedBonus('fly', FLY_COMBO_DURATION_MS);
     recordGameEvent('ability_used', { ability: 'fly_combo' });
     flyComboTimeoutRef.current = window.setTimeout(() => {
       flyComboTimeoutRef.current = null;
       clearFlyCombo();
     }, FLY_COMBO_DURATION_MS);
-  }, [clearFlyCombo]);
+  }, [clearFlyCombo, showFeaturedBonus]);
 
   const awardScore = useCallback((baseScore: number) => {
     const next = scoreWithFlyCombo(challengeSessionRef.current, baseScore);
@@ -327,6 +361,13 @@ export function useGame() {
     if (!devFlagsRef.current.stepSimulation) return;
     stepRequestedRef.current = true;
     setGameState((prev) => ({ ...prev, paused: true }));
+  }, []);
+
+  const togglePause = useCallback(() => {
+    if (devFlagsRef.current.stepSimulation) return;
+    setGameState((prev) => (
+      prev.gameOver || prev.gameWon ? prev : { ...prev, paused: !prev.paused }
+    ));
   }, []);
 
   const rebuildLaneItems = useCallback((lanes: LaneConfig[], rows: number) => {
@@ -840,6 +881,13 @@ export function useGame() {
   }, [clearPendingTimers]);
 
   const levelElapsedSeconds = Math.max(0, Math.floor((hudClockNow - challengeSessionRef.current.levelStartedAt) / 1000));
+  const featuredBonusRemainingMs = featuredBonus ? Math.max(0, featuredBonus.expiresAt - hudClockNow) : 0;
+  const activeBonus: ActiveBonusHud | null = featuredBonus && featuredBonusRemainingMs > 0
+    ? {
+      kind: featuredBonus.kind,
+      remainingSeconds: Math.ceil(featuredBonusRemainingMs / 1000),
+    }
+    : null;
 
   return {
     frogRef,
@@ -853,12 +901,14 @@ export function useGame() {
     currentAnchorActive,
     superHopActive,
     flyComboActive,
+    activeBonus,
     challengeBonus,
     levelElapsedSeconds,
     deathAnimation,
     showSplash,
     moveFrog,
     requestSimulationStep,
+    togglePause,
     restartGame,
     laneConfigs: levelData.lanes,
     totalRows: levelData.rows,
