@@ -4,24 +4,9 @@
     "type": "split",
     "children": [
       {
-        "id": "0a08762ee5cd0ae0",
-        "type": "tabs",
-        "children": [
-          {
-            "id": "2a3a83708b1d3031",
-            "type": "leaf",
-            "state": {
-              "type": "empty",
-              "state": {},
-              "icon": "lucide-file",
-              "title": "Новая вкладка"
-            }
-          }
-        ]
-      },
-      {
         "id": "d2c06277a533d238",
         "type": "tabs",
+        "dimension": 99.99999999999999,
         "children": [
           {
             "id": "fd484328de6068ee",
@@ -192,18 +177,18 @@
       "bases:Создать новую базу": false
     }
   },
-  "active": "2a3a83708b1d3031",
+  "active": "fd484328de6068ee",
   "lastOpenFiles": [
+    "Project Overview.md",
+    "Architecture Map.md",
+    "Implementation Notes.md",
+    "Context Changelog.md",
     "Art Direction Sheet.md",
+    "Agent Context Protocol.md",
+    "00 Context Index.md",
     "AGENTS.mdc",
     "ITERATIONS.mdc",
     "PROJECT.mdc",
-    "Добро пожаловать.md",
-    "Context Changelog.md",
-    "Implementation Notes.md",
-    "Architecture Map.md",
-    "Project Overview.md",
-    "Agent Context Protocol.md",
-    "00 Context Index.md"
+    "Добро пожаловать.md"
   ]
 }

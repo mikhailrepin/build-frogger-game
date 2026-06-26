@@ -1,5 +1,5 @@
 ---
-context_version: 0.1.0
+context_version: 0.1.1
 status: active
 updated: 2026-06-26
 ---
@@ -39,6 +39,7 @@ updated: 2026-06-26
 
 - The most important architecture debt is that [useGame.ts](../src/useGame.ts) mixes simulation, input, timers, audio side effects, and React state updates.
 - The renderer is already componentized, and a larger part of the gameplay rules are now isolated in [gameCore.ts](../src/gameCore.ts).
+- The canvas renderer configuration in [App.tsx](../src/App.tsx) should keep an explicit shadow-map mode instead of the boolean `shadows` default, because the current React Three Fiber default still maps to Three.js `PCFSoftShadowMap`, which is deprecated.
 - High-frequency frog and lane motion now stay in refs, while React state is limited to coarse UI and lifecycle updates.
 - [viewMath.ts](../src/viewMath.ts) is a pure helper and a good template for more visual-fit calculations.
 - [gameMetrics.ts](../src/gameMetrics.ts) is intentionally adapter-only; storage or analytics consumers should live in separate modules such as [gameMetricsStorage.ts](../src/gameMetricsStorage.ts).

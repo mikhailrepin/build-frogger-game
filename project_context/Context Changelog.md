@@ -6,6 +6,22 @@ updated: 2026-06-26
 
 # Context Changelog
 
+## 1.26.1 - 2026-06-26
+
+Changed files and notes:
+
+- [App.tsx](../src/App.tsx)
+- [Architecture Map](Architecture%20Map.md)
+
+Reason:
+
+- The canvas renderer now uses an explicit percentage-closer shadow mode instead of the React Three Fiber boolean default.
+- This removes the repeated Three.js deprecation warning caused by the boolean default mapping to `PCFSoftShadowMap`.
+
+Implementation impact:
+
+- Agents should keep shadow-map selection explicit in [App.tsx](../src/App.tsx) when changing canvas configuration, rather than relying on the boolean `shadows` shortcut.
+
 ## 1.26.0 - 2026-06-26
 
 Changed files and notes:

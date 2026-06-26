@@ -173,7 +173,7 @@ export default function App() {
             position: [6, 8, 6],
             zoom: 55,
           }}
-          shadows
+          shadows="percentage"
           dpr={[1, 2]}
           gl={{ antialias: true, alpha: false, powerPreference: 'high-performance',
                 localClippingEnabled: true }}
