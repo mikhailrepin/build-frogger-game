@@ -22,6 +22,15 @@ Result: production build succeeds.
 - Procedural Web Audio system: `src/audio.ts`.
 - The project is a custom React/R3F game implementation, not a Phaser-based 2D game.
 
+## Context and Documentation System
+
+- Primary memory store: [Context index](00%20Context%20Index.md).
+- Agent protocol: [Agent Context Protocol](Agent%20Context%20Protocol.md).
+- Architecture context: [Architecture Map](Architecture%20Map.md).
+- Implementation control: [Implementation Notes](Implementation%20Notes.md).
+- Context versioning: [Context Changelog](Context%20Changelog.md).
+- Agents must keep context documents, Obsidian notes, and source-code references linked during implementation.
+
 ## Stability
 
 ### Performance

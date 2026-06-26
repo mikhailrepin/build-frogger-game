@@ -2,6 +2,17 @@
 
 This file defines how agents must work in this project.
 
+## Context System
+
+- `project_context` is an Obsidian vault and the canonical project context layer.
+- Before implementation, read [Context index](00%20Context%20Index.md), [Agent context protocol](Agent%20Context%20Protocol.md), [Project overview](Project%20Overview.md), [Architecture map](Architecture%20Map.md), and [Implementation notes](Implementation%20Notes.md).
+- Treat `.obsidian` as vault configuration. Do not delete or rewrite `.obsidian` files unless the task is explicitly about Obsidian configuration.
+- Keep Obsidian notes, context documents, and code references synchronized during implementation.
+- If source code and context disagree, inspect source code first, then update the context note or record the mismatch in [Context changelog](Context%20Changelog.md).
+- When documentation mentions concrete implementation, link to the relevant source file, for example [useGame.ts](../src/useGame.ts), [Scene.tsx](../src/Scene.tsx), [App.tsx](../src/App.tsx), [gameConstants.ts](../src/gameConstants.ts), or [audio.ts](../src/audio.ts).
+- Maintain bidirectional context links where practical: new stable context notes should be linked from [Context index](00%20Context%20Index.md), and affected notes should link back to related project docs or code.
+- Meaningful context changes must include a versioned entry in [Context changelog](Context%20Changelog.md).
+
 ## Project Principles
 
 - Preserve the current stack unless the user explicitly asks for a migration: React, Vite, Tailwind CSS, Three.js, React Three Fiber.
@@ -75,17 +86,22 @@ This file defines how agents must work in this project.
 ## Change Hygiene
 
 - Read the surrounding code before editing.
+- Read and reconcile the Obsidian context before editing.
 - Keep edits scoped to the requested behavior.
 - Do not rewrite architecture opportunistically while fixing a narrow bug.
 - Do not remove user changes unless the user explicitly requests it.
 - Prefer small pure functions for rules that need tests.
-- Document new rules in `project_info` when they affect gameplay, testing, or agent behavior.
+- Document new rules in `project_context` when they affect gameplay, testing, or agent behavior.
+- Document stable decisions in `project_context` when they affect architecture, gameplay, testing, visuals, developer mode, or agent workflow.
+- Keep context documentation versioned through [Context changelog](Context%20Changelog.md).
 
 ## Completion Criteria
 
 A change is complete only when:
 
 - the implementation matches the requested behavior;
+- Obsidian context has been checked and updated when relevant;
+- documentation links point to mentioned files, code, and related context notes;
 - relevant unit tests exist or the reason for missing tests is documented;
 - `npm run build` passes unless the task is documentation-only and build is not relevant;
 - no browser or Playwright tests were used when prohibited;

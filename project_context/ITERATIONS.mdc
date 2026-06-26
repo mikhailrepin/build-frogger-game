@@ -17,6 +17,11 @@
 Цель: обеспечить единый стиль работы всех агентов и разработчиков.
 
 - Использовать [AGENTS.mdc](AGENTS.mdc) как обязательный контракт проекта.
+- Использовать Obsidian vault [project_context](00%20Context%20Index.md) как основное док-контекст ядро и memory store проекта.
+- Перед реализацией сверять задачу с [Agent Context Protocol](Agent%20Context%20Protocol.md), [Architecture Map](Architecture%20Map.md) и [Implementation Notes](Implementation%20Notes.md).
+- Поддерживать линкование связей между Obsidian-заметками, context-документами и исходным кодом.
+- При упоминании конкретной реализации ссылаться на файлы кода: [useGame.ts](../src/useGame.ts), [Scene.tsx](../src/Scene.tsx), [App.tsx](../src/App.tsx), [gameConstants.ts](../src/gameConstants.ts), [audio.ts](../src/audio.ts).
+- Вести версионирование контекста через [Context Changelog](Context%20Changelog.md).
 - Перед правками читать текущую архитектуру, а не внедрять новый стек.
 - Не использовать Playwright и браузерные тесты для задач, где явно указан запрет.
 - Для игровых правил сначала писать или обновлять unit tests.
