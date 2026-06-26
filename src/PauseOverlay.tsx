@@ -137,7 +137,7 @@ export function PauseOverlay({
           >
             Back to Game
           </button>
-          <p className="flex items-center justify-center gap-1 text-[12px] font-normal leading-4 text-white/70">
+          <p className="keyboard-help flex items-center justify-center gap-1 text-[12px] font-normal leading-4 text-white">
             <span>P</span>
             <span>Resume</span>
           </p>

@@ -44,6 +44,17 @@
   z-index: 1;
 }
 
+.keyboard-help {
+  opacity: 0.7;
+}
+
+@media (max-width: 767px) and (max-height: 1024px),
+       (max-width: 1024px) and (max-height: 767px) {
+  .keyboard-help {
+    opacity: 0;
+  }
+}
+
 @keyframes shake-anim {
   0%,100%{transform:translate(0)}
   12%{transform:translate(-5px,-2px) rotate(-0.5deg)}

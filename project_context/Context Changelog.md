@@ -6,6 +6,32 @@ updated: 2026-06-26
 
 # Context Changelog
 
+## 1.29.0 - 2026-06-27
+
+Changed files and notes:
+
+- [gameInput.ts](../src/gameInput.ts)
+- [gameInput.test.ts](../src/gameInput.test.ts)
+- [useGame.ts](../src/useGame.ts)
+- [App.tsx](../src/App.tsx)
+- [PauseOverlay.tsx](../src/PauseOverlay.tsx)
+- [EndStateOverlay.tsx](../src/EndStateOverlay.tsx)
+- [index.css](../src/index.css)
+- [Context index](00%20Context%20Index.md)
+- [Architecture Map](Architecture%20Map.md)
+- [Project audit](PROJECT.mdc)
+
+Reason:
+
+- Character-based keyboard handling changed with the active OS layout.
+- Removing help text from mobile DOM flow changed the reserved control spacing.
+
+Implementation impact:
+
+- Physical `KeyboardEvent.code` values now map to semantic move, pause, restart, and dev-step actions in one tested module.
+- WASD and related controls work from the same physical keys regardless of the active character layout.
+- Gameplay, pause, and game-over keyboard help stays in layout at `0%` opacity on phone-sized portrait and landscape viewports.
+
 ## 1.28.0 - 2026-06-27
 
 Changed files and notes:

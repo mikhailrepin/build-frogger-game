@@ -82,6 +82,7 @@ import {
   startMusic,
   stopMusic,
 } from './audio';
+import { getKeyboardGameAction } from './gameInput';
 
 type FeaturedBonus = {
   kind: BonusItem['kind'];
@@ -623,51 +624,37 @@ export function useGame() {
       }
 
       const gs = gameStateRef.current;
+      const action = getKeyboardGameAction(e.code);
+      if (!action) return;
+
       if (gs.gameOver || gs.gameWon) {
-        if (e.key === ' ' || e.key === 'Enter') {
+        if (action.type === 'restart') {
+          e.preventDefault();
           restartGame();
         }
         return;
       }
 
-      if (devFlagsRef.current.stepSimulation && gs.paused && (e.key === '.' || e.key === 'n' || e.key === 'N')) {
+      if (devFlagsRef.current.stepSimulation && gs.paused && action.type === 'step') {
         e.preventDefault();
         requestSimulationStep();
         return;
       }
 
-      switch (e.key) {
-        case 'ArrowUp':
-        case 'w':
-        case 'W':
+      switch (action.type) {
+        case 'move':
           e.preventDefault();
-          moveFrog('up');
+          moveFrog(action.direction);
           break;
-        case 'ArrowDown':
-        case 's':
-        case 'S':
+        case 'pause':
           e.preventDefault();
-          moveFrog('down');
-          break;
-        case 'ArrowLeft':
-        case 'a':
-        case 'A':
-          e.preventDefault();
-          moveFrog('left');
-          break;
-        case 'ArrowRight':
-        case 'd':
-        case 'D':
-          e.preventDefault();
-          moveFrog('right');
-          break;
-        case 'p':
-        case 'P':
           if (devFlagsRef.current.stepSimulation) {
-            e.preventDefault();
             break;
           }
           setGameState((prev) => ({ ...prev, paused: !prev.paused }));
+          break;
+        case 'restart':
+        case 'step':
           break;
       }
     };

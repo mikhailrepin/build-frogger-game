@@ -40,11 +40,12 @@ Result: production build succeeds.
 - Gameplay events now flush into `src/gameMetricsStorage.ts` as a local persistence sink.
 - Deterministic replay snapshots now go through `src/gameReplay.ts`, capturing seed, input sequence, and state summaries for QA reproduction.
 - Generated levels now pass through a pure validation guard that checks structural fairness and modifier compatibility.
-- Unit tests cover movement, collision, level structure, transition helpers, dev flags, storage, view math, metrics adapter behavior, metrics persistence, and replay snapshot encoding/decoding.
+- Unit tests cover movement, collision, level structure, transition helpers, physical keyboard mapping, dev flags, storage, view math, metrics adapter behavior, metrics persistence, and replay snapshot encoding/decoding.
 - Restart behavior now uses an explicit action instead of a synthetic keyboard event.
 - Runtime frog and lane motion now live in refs, keeping React state on coarse UI and lifecycle boundaries.
 - River landings now acquire a stable platform lock in the same simulation tick, so logs and turtles carry the frog without per-frame AABB reacquisition.
-- Touch controls now stay visible as the primary mobile input path, while keyboard hints are still gated to fine-pointer devices.
+- Touch controls stay visible as the primary mobile input path, while keyboard help keeps its layout space but becomes fully transparent on phone-sized viewports.
+- Keyboard controls now use physical `KeyboardEvent.code` mappings, so WASD, pause, restart, and dev-step controls do not depend on the active character layout.
 - Audio cleanup now disconnects one-shot nodes after playback and detaches active music nodes on stop.
 - Playable top bounds and river edge buffers now use named constants from `src/gameConstants.ts`.
 - Several scene heights now use named render constants for water, board shell, frog shadow, and lane surfaces.
@@ -112,7 +113,7 @@ Risk level: medium.
 Recommended direction:
 
 - Extract pure modules for movement, row mapping, collision, scoring, level generation validation, and game state transitions.
-- Keep input mapping in one module and expose semantic actions: `move`, `pause`, `restart`, `toggleDevMode`.
+- Extend the dedicated keyboard action map when new semantic actions or remappable controls are introduced.
 - Keep render components stateless where possible and driven by a narrow view model.
 
 ### Memory Leaks
@@ -153,7 +154,7 @@ Risk level: medium-high.
 - The canvas fills the viewport and the HUD is DOM-based, which is the right direction for a browser game.
 - The camera now fits orthographic zoom to viewport and board bounds, while still using partial Z-follow for larger levels.
 - HUD layout uses a centered max-width row with fixed gaps and fixed 48px touch buttons. It may work on many phones, but the top bar can become crowded on very narrow screens because score, title, level, and lives remain in one horizontal row.
-- Touch controls now render only on coarse-pointer devices, and keyboard hints render only on fine-pointer devices. Hybrid devices may still expose both, which is acceptable for a browser game.
+- Touch controls remain available across pointer classes, while keyboard help is visually hidden without collapsing layout on phone-sized portrait and landscape viewports.
 - The game respects reduced-motion preferences by damping non-essential scene motion.
 - Dev mode exposes a single-step control so paused QA sessions can advance one simulation tick at a time, and the pause state persists through restart/transition flows.
 

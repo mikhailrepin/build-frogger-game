@@ -11,6 +11,7 @@ updated: 2026-06-26
 - React app shell: [App.tsx](../src/App.tsx)
 - Figma-aligned end-state overlays: [EndStateOverlay.tsx](../src/EndStateOverlay.tsx)
 - Gameplay hook and loop: [useGame.ts](../src/useGame.ts)
+- Physical keyboard-to-action mapping: [gameInput.ts](../src/gameInput.ts)
 - Pure gameplay core and transition helpers: [gameCore.ts](../src/gameCore.ts)
 - 3D scene and visual components: [Scene.tsx](../src/Scene.tsx)
 - Constants and procedural level generation: [gameConstants.ts](../src/gameConstants.ts)
@@ -48,6 +49,8 @@ updated: 2026-06-26
 - Road markings in [Scene.tsx](../src/Scene.tsx) use a dedicated Y offset and non-writing depth material to avoid z-fighting shimmer during camera movement.
 - Water in [Scene.tsx](../src/Scene.tsx) is rendered as one continuous shader surface per contiguous river section with `#0045A0` coloration; longitudinal current streaks follow each lane's platform direction and blend across lane boundaries, while the lily-pad goal lane uses static water. The general level background is `#072615` and the board plinth material remains separate.
 - The DOM HUD in [App.tsx](../src/App.tsx) uses Figma-exported UI assets from `public/ui`, `Geologica` typography, and liquid-glass panel styling while keeping touch controls visible across pointer classes so mobile devices always have an input path.
+- [gameInput.ts](../src/gameInput.ts) maps physical `KeyboardEvent.code` values to semantic move, pause, restart, and dev-step actions, keeping controls independent from the active keyboard layout.
+- Gameplay, pause, and game-over keyboard help remains in layout but is rendered at zero opacity on phone-sized portrait and landscape viewports.
 - The Figma-aligned pause dialog in [PauseOverlay.tsx](../src/PauseOverlay.tsx) owns pause-only controls, while [audio.ts](../src/audio.ts) exposes one `0..4` master-volume and mute adapter shared by music and effects. Reaching zero auto-mutes, muting from level one collapses to zero, unmuting at zero restores level one, and any enabled volume adjustment exits button-triggered mute.
 - [EndStateOverlay.tsx](../src/EndStateOverlay.tsx) renders the Figma-aligned level-complete and game-over DOM surfaces; [App.tsx](../src/App.tsx) supplies existing score, bonus, best-score, completed-level, and restart data without moving lifecycle rules into the UI.
 - Active bonus state in [useGame.ts](../src/useGame.ts) includes a HUD-facing featured bonus timer, while the ability booleans remain separate gameplay state.

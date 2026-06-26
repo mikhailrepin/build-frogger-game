@@ -94,9 +94,6 @@ export default function App() {
   const [reducedMotion, setReducedMotion] = useState(() => (
     typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
   ));
-  const [supportsKeyboardHints, setSupportsKeyboardHints] = useState(() => (
-    typeof window !== 'undefined' && window.matchMedia('(any-pointer: fine)').matches
-  ));
   const [audioSettings, setAudioSettingsState] = useState(getAudioSettings);
 
   useEffect(() => {
@@ -132,14 +129,8 @@ export default function App() {
     syncMotion();
     motionQuery.addEventListener('change', syncMotion);
 
-    const keyboardQuery = window.matchMedia('(any-pointer: fine)');
-    const syncKeyboard = () => setSupportsKeyboardHints(keyboardQuery.matches);
-    syncKeyboard();
-    keyboardQuery.addEventListener('change', syncKeyboard);
-
     return () => {
       motionQuery.removeEventListener('change', syncMotion);
-      keyboardQuery.removeEventListener('change', syncKeyboard);
     };
   }, []);
 
@@ -265,11 +256,9 @@ export default function App() {
           <ControlButton direction="down" onMove={(direction) => moveFrog(direction, 'touch')} />
           <ControlButton direction="right" onMove={(direction) => moveFrog(direction, 'touch')} />
         </div>
-        {supportsKeyboardHints && (
-          <p className="mt-1.5 rounded-lg text-[10px] font-normal leading-4 text-white/70 [text-shadow:0_2px_2.8px_black]">
-            Arrow Keys / WASD&nbsp;&nbsp;•&nbsp;&nbsp;P Pause
-          </p>
-        )}
+        <p className="keyboard-help mt-1.5 rounded-lg text-[10px] font-normal leading-4 text-white [text-shadow:0_2px_2.8px_black]">
+          Arrow Keys / WASD&nbsp;&nbsp;•&nbsp;&nbsp;P Pause
+        </p>
       </div>
 
       {devFlags.showCellDebug && cellDebug && (

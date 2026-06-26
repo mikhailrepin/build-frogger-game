@@ -88,7 +88,7 @@ export function GameOverOverlay({
           >
             Play Again
           </button>
-          <p className="flex items-center justify-center gap-1 text-[12px] font-normal leading-4 text-white/70">
+          <p className="keyboard-help flex items-center justify-center gap-1 text-[12px] font-normal leading-4 text-white">
             <span>Space</span>
             <span>/</span>
             <span>Enter</span>
