@@ -53,7 +53,7 @@ updated: 2026-06-26
 - Gameplay, pause, and game-over keyboard help remains in layout but is rendered at zero opacity on phone-sized portrait and landscape viewports.
 - The Figma-aligned pause dialog in [PauseOverlay.tsx](../src/PauseOverlay.tsx) owns pause-only controls, while [audio.ts](../src/audio.ts) exposes one `0..4` master-volume and mute adapter shared by music and effects. Reaching zero auto-mutes, muting from level one collapses to zero, unmuting at zero restores level one, and any enabled volume adjustment exits button-triggered mute.
 - [EndStateOverlay.tsx](../src/EndStateOverlay.tsx) renders the Figma-aligned level-complete and game-over DOM surfaces; [App.tsx](../src/App.tsx) supplies existing score, bonus, best-score, completed-level, and restart data without moving lifecycle rules into the UI.
-- Active bonus state in [useGame.ts](../src/useGame.ts) includes a HUD-facing featured bonus timer, while the ability booleans remain separate gameplay state.
+- Active bonus state in [useGame.ts](../src/useGame.ts) is exclusive: every pickup clears all prior effect refs, flags, fly charges, and timeouts before activating the collected bonus. [gameChallenge.ts](../src/gameChallenge.ts) resets the HUD timer on replacement, and [App.tsx](../src/App.tsx) renders one bonus icon plus the remaining seconds.
 - [viewMath.ts](../src/viewMath.ts) is a pure helper and a good template for more visual-fit calculations.
 - [gameMetrics.ts](../src/gameMetrics.ts) is intentionally adapter-only; storage or analytics consumers should live in separate modules such as [gameMetricsStorage.ts](../src/gameMetricsStorage.ts).
 - [gameMetricsStorage.ts](../src/gameMetricsStorage.ts) should remain a consumer, not a source of gameplay truth.

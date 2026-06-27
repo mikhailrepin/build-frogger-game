@@ -216,9 +216,6 @@ export default function App() {
             ) : (
               <img src={UI_ASSETS.frog} alt="" className="h-[22px] w-[26px] shrink-0 drop-shadow-[0_0_10px_rgba(0,255,93,0.55)]" draggable={false} />
             )}
-            {activeBonus ? (
-              <img src={UI_ASSETS.clock} alt="" className="hidden h-6 w-6 shrink-0 min-[390px]:block" draggable={false} />
-            ) : null}
             <span className="whitespace-nowrap text-[18px] font-medium leading-8 tracking-[1.8px] text-[var(--ui-fg)] tabular-nums">
               {activeBonusText}
             </span>

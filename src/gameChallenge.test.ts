@@ -5,6 +5,7 @@ import {
   computeLevelClearScore,
   createChallengeSession,
   registerLevelDeath,
+  replaceActiveTimedBonus,
   resetChallengeSession,
   scoreWithFlyCombo,
 } from './gameChallenge';
@@ -32,5 +33,20 @@ describe('game challenge', () => {
     expect(cleanClear.score).toBeGreaterThan(0);
     expect(cleanClear.perfectClearBonus).toBeGreaterThan(0);
     expect(cleanClear.timeChallengeBonus).toBeGreaterThan(0);
+  });
+
+  it('replaces the active bonus and resets its full duration', () => {
+    const shield = replaceActiveTimedBonus(null, 'shield', 5_000, 1_000);
+    const slowTime = replaceActiveTimedBonus(shield, 'slowTime', 8_000, 2_000);
+    const refreshedSlowTime = replaceActiveTimedBonus(slowTime, 'slowTime', 8_000, 4_000);
+
+    expect(slowTime).toEqual({
+      kind: 'slowTime',
+      expiresAt: 10_000,
+    });
+    expect(refreshedSlowTime).toEqual({
+      kind: 'slowTime',
+      expiresAt: 12_000,
+    });
   });
 });

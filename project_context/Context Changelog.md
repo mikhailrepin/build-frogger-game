@@ -6,6 +6,28 @@ updated: 2026-06-26
 
 # Context Changelog
 
+## 1.30.0 - 2026-06-27
+
+Changed files and notes:
+
+- [useGame.ts](../src/useGame.ts)
+- [App.tsx](../src/App.tsx)
+- [gameChallenge.ts](../src/gameChallenge.ts)
+- [gameChallenge.test.ts](../src/gameChallenge.test.ts)
+- [Architecture Map](Architecture%20Map.md)
+- [Project audit](PROJECT.mdc)
+
+Reason:
+
+- Bonus activation cleared only another bonus of the same type, allowing multiple gameplay effects and their timeout callbacks to overlap.
+- The HUD rendered a separate clock icon beside the active bonus icon, producing duplicate clock icons for slow-time.
+
+Implementation impact:
+
+- Every bonus pickup clears all previous bonus flags, refs, fly charges, and timeouts before activating the collected bonus.
+- Replacing a bonus, including one of the same type, starts its timer from the full configured duration.
+- The HUD renders exactly one active-bonus icon followed by the remaining-second counter.
+
 ## 1.29.0 - 2026-06-27
 
 Changed files and notes:

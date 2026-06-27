@@ -4,6 +4,7 @@ import {
   applyComboBonusScore,
   getLevelClearBonus,
   getTimeChallengeBonus,
+  type BonusItem,
 } from './gameCore';
 
 export interface ChallengeSession {
@@ -16,6 +17,23 @@ export interface ChallengeScoreResult {
   score: number;
   consumed: boolean;
   remainingCharges: number;
+}
+
+export interface ActiveTimedBonus {
+  kind: BonusItem['kind'];
+  expiresAt: number;
+}
+
+export function replaceActiveTimedBonus(
+  _current: ActiveTimedBonus | null,
+  kind: BonusItem['kind'],
+  durationMs: number,
+  now = Date.now(),
+): ActiveTimedBonus {
+  return {
+    kind,
+    expiresAt: now + durationMs,
+  };
 }
 
 export function createChallengeSession(now = Date.now()): ChallengeSession {

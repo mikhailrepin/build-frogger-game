@@ -67,6 +67,7 @@ Result: production build succeeds.
 - Collectible current-anchor pickups now exist and temporarily suppress river drift plus bonus score.
 - Collectible super-hop pickups now exist and temporarily extend hop range plus bonus score.
 - Collectible fly pickups now exist and grant a short combo scoring window plus bonus score.
+- Bonus pickups are mutually exclusive: collecting any bonus replaces the previous effect, clears its timer and runtime flags, and starts the new bonus with a full timer; the HUD displays one bonus icon.
 - Perfect-clear bonus now exists for level clears with zero deaths and awards an extra score chunk.
 - Time-challenge bonus now exists for fast level clears and is surfaced in the HUD timer.
 - Challenge-session reward helpers now live in `src/gameChallenge.ts` instead of remaining embedded in `useGame.ts`.

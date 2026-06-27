@@ -53,8 +53,10 @@ import {
   computeLevelClearScore,
   createChallengeSession,
   registerLevelDeath,
+  replaceActiveTimedBonus,
   resetChallengeSession,
   scoreWithFlyCombo,
+  type ActiveTimedBonus,
   type ChallengeSession,
 } from './gameChallenge';
 import { loadHighScore, saveHighScore } from './highScoreStorage';
@@ -83,11 +85,6 @@ import {
   stopMusic,
 } from './audio';
 import { getKeyboardGameAction } from './gameInput';
-
-type FeaturedBonus = {
-  kind: BonusItem['kind'];
-  expiresAt: number;
-};
 
 type ActiveBonusHud = {
   kind: BonusItem['kind'];
@@ -125,7 +122,7 @@ export function useGame() {
   const [currentAnchorActive, setCurrentAnchorActive] = useState(false);
   const [superHopActive, setSuperHopActive] = useState(false);
   const [flyComboActive, setFlyComboActive] = useState(false);
-  const [featuredBonus, setFeaturedBonus] = useState<FeaturedBonus | null>(null);
+  const [featuredBonus, setFeaturedBonus] = useState<ActiveTimedBonus | null>(null);
   const [challengeBonus, setChallengeBonus] = useState(0);
   const [hudClockNow, setHudClockNow] = useState(() => Date.now());
   const [deathAnimation, setDeathAnimation] = useState(false);
@@ -203,7 +200,8 @@ export function useGame() {
   }, []);
 
   const showFeaturedBonus = useCallback((kind: BonusItem['kind'], durationMs: number) => {
-    setFeaturedBonus({ kind, expiresAt: Date.now() + durationMs });
+    const now = Date.now();
+    setFeaturedBonus((current) => replaceActiveTimedBonus(current, kind, durationMs, now));
   }, []);
 
   const clearFeaturedBonus = useCallback((kind: BonusItem['kind']) => {
@@ -336,6 +334,14 @@ export function useGame() {
       clearFlyCombo();
     }, FLY_COMBO_DURATION_MS);
   }, [clearFlyCombo, showFeaturedBonus]);
+
+  const clearActiveBonuses = useCallback(() => {
+    clearShield();
+    clearSlowTime();
+    clearCurrentAnchor();
+    clearSuperHop();
+    clearFlyCombo();
+  }, [clearShield, clearSlowTime, clearCurrentAnchor, clearSuperHop, clearFlyCombo]);
 
   const awardScore = useCallback((baseScore: number) => {
     const next = scoreWithFlyCombo(challengeSessionRef.current, baseScore);
@@ -498,12 +504,8 @@ export function useGame() {
     setShowSplash(false);
     rebuildLaneItems(nextLevelData.lanes, nextLevelData.rows);
     rebuildBonusItems(nextLevel, nextLevelData.lanes, nextLevelData.rows);
-    clearShield();
-    clearSlowTime();
-    clearCurrentAnchor();
-    clearSuperHop();
-    clearFlyCombo();
-  }, [clearPendingTimers, rebuildLaneItems, rebuildBonusItems, clearShield, clearSlowTime, clearCurrentAnchor, clearSuperHop, clearFlyCombo, recordReplayEnabled, resetLevelClock]);
+    clearActiveBonuses();
+  }, [clearPendingTimers, rebuildLaneItems, rebuildBonusItems, clearActiveBonuses, recordReplayEnabled, resetLevelClock]);
 
   const handleDeath = useCallback((isSplash = false) => {
     const flags = devFlagsRef.current;
@@ -598,6 +600,7 @@ export function useGame() {
     ));
     bonusItemsRef.current = nextItems;
     setBonusItems(nextItems);
+    clearActiveBonuses();
     playScore();
     if (bonus.kind === 'fly') {
       awardScore(FLY_BONUS_SCORE);
@@ -615,7 +618,7 @@ export function useGame() {
     } else if (bonus.kind === 'superHop') {
       activateSuperHop();
     }
-  }, [activateShield, activateFlyCombo, activateSlowTime, activateCurrentAnchor, activateSuperHop, awardScore]);
+  }, [activateShield, activateFlyCombo, activateSlowTime, activateCurrentAnchor, activateSuperHop, awardScore, clearActiveBonuses]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -889,11 +892,7 @@ export function useGame() {
         setShowSplash(false);
         rebuildLaneItems(nextLevelData.lanes, nextLevelData.rows);
         rebuildBonusItems(nextLevel, nextLevelData.lanes, nextLevelData.rows);
-        clearShield();
-        clearSlowTime();
-        clearCurrentAnchor();
-        clearSuperHop();
-        clearFlyCombo();
+        clearActiveBonuses();
       }, 2000);
 
     return () => {
@@ -902,7 +901,7 @@ export function useGame() {
         levelTimeoutRef.current = null;
       }
     };
-  }, [gameState.gameWon, gameState.level, rebuildLaneItems, rebuildBonusItems, clearShield, clearSlowTime, clearCurrentAnchor, clearSuperHop, clearFlyCombo]);
+  }, [gameState.gameWon, gameState.level, rebuildLaneItems, rebuildBonusItems, clearActiveBonuses]);
 
   useEffect(() => {
     return () => {
