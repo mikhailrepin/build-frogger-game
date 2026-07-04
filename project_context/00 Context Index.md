@@ -1,5 +1,5 @@
 ---
-context_version: 0.3.2
+context_version: 0.4.0
 status: active
 updated: 2026-07-04
 ---
@@ -27,6 +27,9 @@ This Obsidian vault is the primary documentation-context core and memory store f
 
 - [App shell](../src/App.tsx)
 - [Localized start screen](../src/MainScreen.tsx)
+- [Localized bonus guide overlay](../src/BonusGuideOverlay.tsx)
+- [Shared in-game and guide bonus models](../src/BonusModel3D.tsx)
+- [Bonus guide ordering and navigation](../src/bonusGuide.ts)
 - [Shared UI localization](../src/localization.ts)
 - [Exit confirmation overlay](../src/ConfirmExitOverlay.tsx)
 - [End-state overlays](../src/EndStateOverlay.tsx)

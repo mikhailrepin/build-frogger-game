@@ -11,6 +11,7 @@ import { useGame } from './useGame';
 import { GameScene } from './Scene';
 import { MainScreen } from './MainScreen';
 import { PauseOverlay } from './PauseOverlay';
+import { BonusGuideOverlay } from './BonusGuideOverlay';
 import { GameOverOverlay, LevelCompleteOverlay } from './EndStateOverlay';
 import type { Direction } from './gameConstants';
 import { CELL_SIZE } from './gameConstants';
@@ -301,6 +302,7 @@ function Game({
           score={gameState.score}
           volumeLevel={audioSettings.volumeLevel}
           muted={audioSettings.muted}
+          reducedMotion={reducedMotion}
           onDecreaseVolume={onDecreaseVolume}
           onIncreaseVolume={onIncreaseVolume}
           onExitToMainScreen={onExitToMainScreen}
@@ -320,7 +322,7 @@ function Game({
   );
 }
 
-type AppPhase = 'menu' | 'leaving-menu' | 'playing';
+type AppPhase = 'menu' | 'menu-guide' | 'leaving-menu' | 'playing';
 
 export default function App() {
   const [phase, setPhase] = useState<AppPhase>('menu');
@@ -403,15 +405,26 @@ export default function App() {
 
   if (phase !== 'playing') {
     return (
-      <MainScreen
-        locale={locale}
-        muted={audioSettings.muted}
-        transitioning={phase === 'leaving-menu'}
-        version={APP_VERSION}
-        onLocaleChange={setLocale}
-        onStart={startGame}
-        onToggleMuted={toggleMuted}
-      />
+      <>
+        <MainScreen
+          locale={locale}
+          muted={audioSettings.muted}
+          transitioning={phase === 'leaving-menu'}
+          version={APP_VERSION}
+          onBonusGuide={() => setPhase('menu-guide')}
+          onLocaleChange={setLocale}
+          onStart={startGame}
+          onToggleMuted={toggleMuted}
+        />
+        {phase === 'menu-guide' ? (
+          <BonusGuideOverlay
+            locale={locale}
+            reducedMotion={reducedMotion}
+            source="mainMenu"
+            onExitGuide={() => setPhase('menu')}
+          />
+        ) : null}
+      </>
     );
   }
 

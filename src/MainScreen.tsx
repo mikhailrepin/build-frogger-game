@@ -16,6 +16,7 @@ interface MainScreenProps {
   muted: boolean;
   transitioning: boolean;
   version: string;
+  onBonusGuide: () => void;
   onLocaleChange: (locale: Locale) => void;
   onStart: () => void;
   onToggleMuted: () => void;
@@ -26,6 +27,7 @@ export function MainScreen({
   muted,
   transitioning,
   version,
+  onBonusGuide,
   onLocaleChange,
   onStart,
   onToggleMuted,
@@ -133,7 +135,7 @@ export function MainScreen({
 
           <button
             type="button"
-            disabled
+            onClick={onBonusGuide}
             className="start-screen__button"
           >
             {copy.bonusGuide}

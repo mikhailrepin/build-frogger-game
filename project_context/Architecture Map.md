@@ -1,5 +1,5 @@
 ---
-context_version: 0.3.1
+context_version: 0.4.0
 status: active
 updated: 2026-07-04
 ---
@@ -10,6 +10,9 @@ updated: 2026-07-04
 
 - React app shell: [App.tsx](../src/App.tsx)
 - Responsive localized start screen: [MainScreen.tsx](../src/MainScreen.tsx)
+- Localized Bonus Guide dialog: [BonusGuideOverlay.tsx](../src/BonusGuideOverlay.tsx)
+- Shared bonus mesh definitions: [BonusModel3D.tsx](../src/BonusModel3D.tsx)
+- Bonus Guide ordering and cyclic navigation: [bonusGuide.ts](../src/bonusGuide.ts)
 - Shared English/Russian UI copy: [localization.ts](../src/localization.ts)
 - Figma-aligned main-screen exit confirmation: [ConfirmExitOverlay.tsx](../src/ConfirmExitOverlay.tsx)
 - Figma-aligned end-state overlays: [EndStateOverlay.tsx](../src/EndStateOverlay.tsx)
@@ -31,7 +34,7 @@ updated: 2026-07-04
 
 1. [App.tsx](../src/App.tsx) first mounts the localized [MainScreen.tsx](../src/MainScreen.tsx), then mounts the full-screen canvas and DOM HUD after the start transition.
 2. [useGame.ts](../src/useGame.ts) owns game state, input handling, the animation loop, collision checks, scoring, lives, level transitions, and audio triggers, while delegating pure rules to [gameCore.ts](../src/gameCore.ts) and persistence to [highScoreStorage.ts](../src/highScoreStorage.ts).
-3. [Scene.tsx](../src/Scene.tsx) renders the playfield, frog, obstacles, platforms, water, particles, and lighting.
+3. [Scene.tsx](../src/Scene.tsx) renders the playfield, frog, obstacles, platforms, water, particles, and lighting. Its pickups and [BonusGuideOverlay.tsx](../src/BonusGuideOverlay.tsx) both render [BonusModel3D.tsx](../src/BonusModel3D.tsx), so the guide cannot drift to separate bonus artwork.
 4. [gameConstants.ts](../src/gameConstants.ts) defines grid constants, lane types, lily pad positions, and deterministic level generation.
 5. [viewMath.ts](../src/viewMath.ts) computes orthographic fit values from viewport and world bounds.
 6. [gameMetrics.ts](../src/gameMetrics.ts) records gameplay events in an in-memory adapter.
@@ -52,11 +55,12 @@ updated: 2026-07-04
 - Road markings in [Scene.tsx](../src/Scene.tsx) use a dedicated Y offset and non-writing depth material to avoid z-fighting shimmer during camera movement.
 - Water in [Scene.tsx](../src/Scene.tsx) is rendered as one continuous shader surface per contiguous river section with `#0045A0` coloration; longitudinal current streaks follow each lane's platform direction and blend across lane boundaries, while the lily-pad goal lane uses static water. The general level background is `#072615` and the board plinth material remains separate.
 - The DOM HUD in [App.tsx](../src/App.tsx) uses Figma-exported UI assets from `public/ui`, `Geologica` typography, and liquid-glass panel styling while keeping touch controls visible across pointer classes so mobile devices always have an input path.
-- [MainScreen.tsx](../src/MainScreen.tsx) keeps the background, title art, and frog on separate responsive parallax layers; the game runtime is not mounted until Start Game completes its short fade-to-black transition. The looping `public/sounds/main-menu.mp3` track is active only while the main-screen phase is mounted, shares mute and volume settings with gameplay audio through [audio.ts](../src/audio.ts), and retries playback after the first user gesture when browser autoplay policy blocks the initial attempt. The footer reads the application version from `package.json`.
-- [localization.ts](../src/localization.ts) is the shared source for English and Russian start-screen, gameplay, pause, level-complete, game-over, and exit-confirmation copy. [App.tsx](../src/App.tsx) owns the selected locale so it survives game entry and return to the main screen.
+- [MainScreen.tsx](../src/MainScreen.tsx) keeps the background, title art, and frog on separate responsive parallax layers; the game runtime is not mounted until Start Game completes its short fade-to-black transition. The looping `public/sounds/main-menu.mp3` track stays active across the `menu` and `menu-guide` phases, shares mute and volume settings with gameplay audio through [audio.ts](../src/audio.ts), and retries playback after the first user gesture when browser autoplay policy blocks the initial attempt. The footer reads the application version from `package.json`.
+- [localization.ts](../src/localization.ts) is the shared source for English and Russian start-screen, gameplay, pause, Bonus Guide, level-complete, game-over, and exit-confirmation copy. [App.tsx](../src/App.tsx) owns the selected locale so it survives game entry and return to the main screen.
 - [gameInput.ts](../src/gameInput.ts) maps physical `KeyboardEvent.code` values to semantic move, pause, restart, and dev-step actions, keeping controls independent from the active keyboard layout.
 - Gameplay, pause, and game-over keyboard help remains in layout but is rendered at zero opacity on phone-sized portrait and landscape viewports.
-- The Figma-aligned pause dialog in [PauseOverlay.tsx](../src/PauseOverlay.tsx) owns pause-only controls and opens [ConfirmExitOverlay.tsx](../src/ConfirmExitOverlay.tsx) before abandoning the current level for the main screen. [audio.ts](../src/audio.ts) exposes one `0..4` master-volume and mute adapter shared by music and effects. Reaching zero auto-mutes, muting from level one collapses to zero, unmuting at zero restores level one, and any enabled volume adjustment exits button-triggered mute.
+- The Figma-aligned pause dialog in [PauseOverlay.tsx](../src/PauseOverlay.tsx) owns pause-only controls, opens [BonusGuideOverlay.tsx](../src/BonusGuideOverlay.tsx) without resuming the simulation, and opens [ConfirmExitOverlay.tsx](../src/ConfirmExitOverlay.tsx) before abandoning the current level for the main screen. [audio.ts](../src/audio.ts) exposes one `0..4` master-volume and mute adapter shared by music and effects.
+- [BonusGuideOverlay.tsx](../src/BonusGuideOverlay.tsx) supports entry from the main menu and pause, cyclic pointer/keyboard navigation, pagination, reduced motion, a separately scrollable description, and whole-dialog scrolling for short landscape viewports. Exit returns to the source surface; Back to Game is available only from pause.
 - [EndStateOverlay.tsx](../src/EndStateOverlay.tsx) renders the Figma-aligned level-complete and game-over DOM surfaces; [App.tsx](../src/App.tsx) supplies existing score, bonus, best-score, completed-level, and restart data without moving lifecycle rules into the UI.
 - Active bonus state in [useGame.ts](../src/useGame.ts) is exclusive: every pickup clears all prior effect refs, flags, fly charges, and timeouts before activating the collected bonus. [gameChallenge.ts](../src/gameChallenge.ts) resets the HUD timer on replacement, and [App.tsx](../src/App.tsx) renders one bonus icon plus the remaining seconds.
 - [viewMath.ts](../src/viewMath.ts) is a pure helper and a good template for more visual-fit calculations.

@@ -302,6 +302,25 @@ body { background: #002713; }
   }
 }
 
+.bonus-guide-description {
+  scrollbar-color: rgba(255, 255, 255, 0.45) transparent;
+  scrollbar-width: thin;
+}
+
+.bonus-guide-description::-webkit-scrollbar {
+  display: block;
+  width: 4px;
+}
+
+.bonus-guide-description::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.bonus-guide-description::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.45);
+}
+
 @media (max-height: 680px) {
   .start-screen__menu {
     min-height: 58svh;

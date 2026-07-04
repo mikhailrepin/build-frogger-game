@@ -1,5 +1,5 @@
 ---
-context_version: 0.3.1
+context_version: 0.4.0
 status: active
 updated: 2026-07-04
 ---
@@ -23,6 +23,9 @@ When documentation mentions implementation details, include links to the relevan
 - Rendering: [Scene.tsx](../src/Scene.tsx)
 - UI shell: [App.tsx](../src/App.tsx)
 - Start screen: [MainScreen.tsx](../src/MainScreen.tsx)
+- Bonus guide overlay: [BonusGuideOverlay.tsx](../src/BonusGuideOverlay.tsx)
+- Shared bonus models: [BonusModel3D.tsx](../src/BonusModel3D.tsx)
+- Bonus guide navigation: [bonusGuide.ts](../src/bonusGuide.ts)
 - UI localization: [localization.ts](../src/localization.ts)
 - Exit confirmation: [ConfirmExitOverlay.tsx](../src/ConfirmExitOverlay.tsx)
 - Level constants: [gameConstants.ts](../src/gameConstants.ts)

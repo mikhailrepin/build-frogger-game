@@ -1,10 +1,41 @@
 ---
-context_version: 0.3.2
+context_version: 0.4.0
 status: active
 updated: 2026-07-04
 ---
 
 # Context Changelog
+
+## 1.34.0 - 2026-07-04
+
+Changed files and notes:
+
+- [BonusGuideOverlay.tsx](../src/BonusGuideOverlay.tsx)
+- [BonusModel3D.tsx](../src/BonusModel3D.tsx)
+- [bonusGuide.ts](../src/bonusGuide.ts)
+- [bonusGuide.test.ts](../src/bonusGuide.test.ts)
+- [Scene.tsx](../src/Scene.tsx)
+- [App.tsx](../src/App.tsx)
+- [MainScreen.tsx](../src/MainScreen.tsx)
+- [PauseOverlay.tsx](../src/PauseOverlay.tsx)
+- [localization.ts](../src/localization.ts)
+- [index.css](../src/index.css)
+- [Context index](00%20Context%20Index.md)
+- [Architecture Map](Architecture%20Map.md)
+- [Implementation Notes](Implementation%20Notes.md)
+- [Project audit](PROJECT.mdc)
+
+Reason:
+
+- HMI Studio node `97:870` needed a functional localized Bonus Guide reachable from both the main screen and pause.
+- Guide previews needed to remain identical to gameplay pickup models.
+
+Implementation impact:
+
+- Gameplay and guide previews now share one `BonusModel3D` renderer for shield, slow time, current anchor, super hop, and fly.
+- The guide provides English and Russian names and mechanics descriptions, cyclic arrow navigation, five pagination indicators, reduced-motion behavior, and responsive scrolling.
+- Opening from the main screen keeps the menu and its requested looping music mounted; opening from pause keeps the game simulation paused.
+- Unit tests cover guide ordering and wraparound navigation; browser QA covers portrait and short landscape layouts and both entry paths.
 
 ## 1.33.1 - 2026-07-04
 

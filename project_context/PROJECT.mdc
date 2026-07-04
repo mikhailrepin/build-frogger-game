@@ -19,6 +19,8 @@ Result: production build succeeds.
 - Gameplay state and loop: `src/useGame.ts`.
 - Pure gameplay core: `src/gameCore.ts`.
 - Rendering and 3D procedural scene: `src/Scene.tsx`.
+- Shared 3D bonus models: `src/BonusModel3D.tsx`.
+- Localized Bonus Guide overlay and navigation: `src/BonusGuideOverlay.tsx`, `src/bonusGuide.ts`.
 - Constants and procedural level generation: `src/gameConstants.ts`.
 - Viewport fitting math: `src/viewMath.ts`.
 - High score storage adapter: `src/highScoreStorage.ts`.
@@ -53,7 +55,8 @@ Result: production build succeeds.
 - Score transition constants are now named in `src/gameCore.ts` instead of using raw literals.
 - Lane classification helpers now centralize road, river, goal, and row lookup policy.
 - The top HUD now uses the Figma-aligned compact capsule layout with `Geologica` typography, local UI assets, liquid-glass treatment, score, health or active bonus countdown, level, and pause.
-- The pause overlay now matches the HMI Studio layout and exposes four visible master-volume segments plus a zero-volume state, synchronized mute behavior, resume control, and a functional Main Screen action guarded by the HMI Studio `98:995` confirmation dialog; Bonus Guide remains an intentional non-functional placeholder.
+- The pause overlay now matches the HMI Studio layout and exposes four visible master-volume segments plus a zero-volume state, synchronized mute behavior, resume control, a functional Main Screen action guarded by the HMI Studio `98:995` confirmation dialog, and the localized Bonus Guide.
+- The HMI Studio `97:870` Bonus Guide is functional from both the main screen and pause, displays the same five shared 3D bonus models used by gameplay, includes translated mechanics descriptions, cyclic navigation, pagination, and responsive text/dialog scrolling.
 - The application now opens on the HMI Studio `96:575` start screen with responsive background, title, and frog parallax layers, matching language flags, shared mute state, and a short fade-through-black transition into gameplay.
 - The start screen loops `public/sounds/main-menu.mp3`; the shared audio adapter keeps its mute and volume synchronized with gameplay audio, retries after the first browser-approved interaction when autoplay is blocked, and disposes the media element when gameplay starts.
 - English and Russian copy is shared across the start screen, gameplay HUD and controls, pause, level-complete, game-over, and main-screen exit confirmation.

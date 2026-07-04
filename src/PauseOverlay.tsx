@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { AUDIO_VOLUME_LEVELS } from './audio';
 import { ConfirmExitOverlay } from './ConfirmExitOverlay';
+import { BonusGuideOverlay } from './BonusGuideOverlay';
 import { getNumberLocale, UI_COPY, type Locale } from './localization';
 
 const VOLUME_BAR_HEIGHTS = [24, 32, 40, 48] as const;
@@ -25,6 +26,7 @@ interface PauseOverlayProps {
   score: number;
   volumeLevel: number;
   muted: boolean;
+  reducedMotion: boolean;
   onDecreaseVolume: () => void;
   onIncreaseVolume: () => void;
   onToggleMute: () => void;
@@ -37,6 +39,7 @@ export function PauseOverlay({
   score,
   volumeLevel,
   muted,
+  reducedMotion,
   onDecreaseVolume,
   onIncreaseVolume,
   onToggleMute,
@@ -44,12 +47,15 @@ export function PauseOverlay({
   onResume,
 }: PauseOverlayProps) {
   const [confirmingExit, setConfirmingExit] = useState(false);
+  const [showingBonusGuide, setShowingBonusGuide] = useState(false);
   const resumeButtonRef = useRef<HTMLButtonElement>(null);
   const copy = UI_COPY[locale].pause;
 
   useEffect(() => {
-    resumeButtonRef.current?.focus();
-  }, []);
+    if (!showingBonusGuide) {
+      resumeButtonRef.current?.focus();
+    }
+  }, [showingBonusGuide]);
 
   if (confirmingExit) {
     return (
@@ -57,6 +63,18 @@ export function PauseOverlay({
         locale={locale}
         onExit={onExitToMainScreen}
         onResume={onResume}
+      />
+    );
+  }
+
+  if (showingBonusGuide) {
+    return (
+      <BonusGuideOverlay
+        locale={locale}
+        reducedMotion={reducedMotion}
+        source="pause"
+        onExitGuide={() => setShowingBonusGuide(false)}
+        onBackToGame={onResume}
       />
     );
   }
@@ -138,7 +156,11 @@ export function PauseOverlay({
                 <img src={PAUSE_ASSETS.volumeOff} alt="" className="h-6 w-6" draggable={false} />
               ) : null}
             </button>
-            <button type="button" disabled className={menuButtonClass}>
+            <button
+              type="button"
+              onClick={() => setShowingBonusGuide(true)}
+              className={menuButtonClass}
+            >
               {copy.bonusGuide}
             </button>
             <button

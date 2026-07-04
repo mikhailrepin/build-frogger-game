@@ -1,4 +1,5 @@
 import type { Direction } from './gameConstants';
+import type { BonusItem } from './gameCore';
 
 export type Locale = 'en' | 'ru';
 
@@ -33,6 +34,19 @@ interface UiCopy {
     mainScreen: string;
     backToGame: string;
     resumeHelp: string;
+  };
+  bonusGuide: {
+    title: string;
+    exitGuide: string;
+    backToGame: string;
+    resumeHelp: string;
+    previous: string;
+    next: string;
+    pageLabel: string;
+    bonuses: Record<BonusItem['kind'], {
+      name: string;
+      description: string;
+    }>;
   };
   levelComplete: {
     level: string;
@@ -93,6 +107,37 @@ export const UI_COPY = {
       backToGame: 'Back to Game',
       resumeHelp: 'Resume',
     },
+    bonusGuide: {
+      title: 'Bonus Guide',
+      exitGuide: 'Exit Guide',
+      backToGame: 'Back to Game',
+      resumeHelp: 'Resume',
+      previous: 'Previous bonus',
+      next: 'Next bonus',
+      pageLabel: 'Bonus',
+      bonuses: {
+        shield: {
+          name: 'Shield',
+          description: 'Awards 100 points and protects the frog from one crash, splash, or out-of-bounds fall for up to 6 seconds. The shield is consumed when it blocks danger. Picking another bonus replaces it.',
+        },
+        slowTime: {
+          name: 'Slow Time',
+          description: 'Awards 100 points and slows vehicles, river platforms, and other moving hazards to 65% of their normal speed for 5 seconds. Picking another bonus replaces the effect.',
+        },
+        currentAnchor: {
+          name: 'Current Anchor',
+          description: 'Awards 100 points and locks the frog’s horizontal position while it rides logs or turtles for 6 seconds, preventing the river current from carrying it sideways. Picking another bonus replaces the effect.',
+        },
+        superHop: {
+          name: 'Super Hop',
+          description: 'Awards 100 points and doubles every jump to two cells for 6 seconds. It crosses dangerous lanes faster, but the longer landing still has to be safe. Picking another bonus replaces the effect.',
+        },
+        fly: {
+          name: 'Fly Combo',
+          description: 'Awards 150 points and doubles the next 3 scoring events for up to 8 seconds. The combo ends when all charges are used, the timer expires, or another bonus is collected.',
+        },
+      },
+    },
     levelComplete: {
       level: 'Level',
       complete: 'Complete',
@@ -149,6 +194,37 @@ export const UI_COPY = {
       mainScreen: 'Главный экран',
       backToGame: 'Продолжить',
       resumeHelp: 'Продолжить',
+    },
+    bonusGuide: {
+      title: 'Гид по бонусам',
+      exitGuide: 'Закрыть гид',
+      backToGame: 'Вернуться в игру',
+      resumeHelp: 'Продолжить',
+      previous: 'Предыдущий бонус',
+      next: 'Следующий бонус',
+      pageLabel: 'Бонус',
+      bonuses: {
+        shield: {
+          name: 'Щит',
+          description: 'Даёт 100 очков и в течение 6 секунд защищает лягушку от одного столкновения, падения в воду или выхода за границы уровня. После спасения щит исчезает. Новый бонус заменяет его.',
+        },
+        slowTime: {
+          name: 'Замедление времени',
+          description: 'Даёт 100 очков и на 5 секунд снижает скорость машин, речных платформ и других движущихся опасностей до 65% от обычной. Новый бонус заменяет эффект.',
+        },
+        currentAnchor: {
+          name: 'Якорь течения',
+          description: 'Даёт 100 очков и на 6 секунд фиксирует лягушку по горизонтали на брёвнах и черепахах, не позволяя течению унести её в сторону. Новый бонус заменяет эффект.',
+        },
+        superHop: {
+          name: 'Суперпрыжок',
+          description: 'Даёт 100 очков и на 6 секунд увеличивает каждый прыжок до двух клеток. Он помогает быстрее пересекать опасные полосы, но место приземления всё равно должно быть безопасным. Новый бонус заменяет эффект.',
+        },
+        fly: {
+          name: 'Комбо с мухой',
+          description: 'Даёт 150 очков и удваивает следующие 3 начисления очков в течение 8 секунд. Комбо заканчивается после расходования зарядов, истечения времени или получения другого бонуса.',
+        },
+      },
     },
     levelComplete: {
       level: 'Уровень',
