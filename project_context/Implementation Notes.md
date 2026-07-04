@@ -1,7 +1,7 @@
 ---
-context_version: 0.2.0
+context_version: 0.2.1
 status: active
-updated: 2026-06-26
+updated: 2026-07-04
 ---
 
 # Implementation Notes
@@ -22,6 +22,7 @@ When documentation mentions implementation details, include links to the relevan
 - Storage adapter: [highScoreStorage.ts](../src/highScoreStorage.ts)
 - Rendering: [Scene.tsx](../src/Scene.tsx)
 - UI shell: [App.tsx](../src/App.tsx)
+- Start screen: [MainScreen.tsx](../src/MainScreen.tsx)
 - Level constants: [gameConstants.ts](../src/gameConstants.ts)
 - Viewport fitting math: [viewMath.ts](../src/viewMath.ts)
 - Gameplay metrics: [gameMetrics.ts](../src/gameMetrics.ts)

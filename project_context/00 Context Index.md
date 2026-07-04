@@ -1,7 +1,7 @@
 ---
-context_version: 0.2.0
+context_version: 0.2.1
 status: active
-updated: 2026-06-26
+updated: 2026-07-04
 ---
 
 # Context Index
@@ -26,6 +26,7 @@ This Obsidian vault is the primary documentation-context core and memory store f
 ## Code Entry Points
 
 - [App shell](../src/App.tsx)
+- [Localized start screen](../src/MainScreen.tsx)
 - [End-state overlays](../src/EndStateOverlay.tsx)
 - [Game state and loop](../src/useGame.ts)
 - [Keyboard action mapping](../src/gameInput.ts)

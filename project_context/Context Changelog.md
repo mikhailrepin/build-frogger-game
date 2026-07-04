@@ -1,10 +1,33 @@
 ---
-context_version: 0.2.0
+context_version: 0.2.1
 status: active
-updated: 2026-06-26
+updated: 2026-07-04
 ---
 
 # Context Changelog
+
+## 1.31.0 - 2026-07-04
+
+Changed files and notes:
+
+- [MainScreen.tsx](../src/MainScreen.tsx)
+- [App.tsx](../src/App.tsx)
+- [index.css](../src/index.css)
+- [Context index](00%20Context%20Index.md)
+- [Architecture Map](Architecture%20Map.md)
+- [Implementation Notes](Implementation%20Notes.md)
+- [Project audit](PROJECT.mdc)
+
+Reason:
+
+- The game needed the HMI Studio node `96:575` as a real responsive entry screen instead of mounting gameplay immediately.
+- Background, title art, and frog must remain independently positioned and visible across viewport sizes.
+
+Implementation impact:
+
+- The start screen uses separate pointer-responsive parallax layers, English and Russian menu copy with matching flags, the shared audio mute adapter, and the application version from `package.json`.
+- The gameplay hook and WebGL scene mount only after Start Game fades the menu to black; the game then fades in from black.
+- Bonus Guide remains an intentionally inert disabled button.
 
 ## 1.30.0 - 2026-06-27
 

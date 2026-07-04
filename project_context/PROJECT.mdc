@@ -53,7 +53,8 @@ Result: production build succeeds.
 - Score transition constants are now named in `src/gameCore.ts` instead of using raw literals.
 - Lane classification helpers now centralize road, river, goal, and row lookup policy.
 - The top HUD now uses the Figma-aligned compact capsule layout with `Geologica` typography, local UI assets, liquid-glass treatment, score, health or active bonus countdown, level, and pause.
-- The pause overlay now matches the HMI Studio layout and exposes four visible master-volume segments plus a zero-volume state, synchronized mute behavior, and resume control; bonus guide and main screen remain intentional non-functional placeholders.
+- The pause overlay now matches the HMI Studio layout and exposes four visible master-volume segments plus a zero-volume state, synchronized mute behavior, and resume control; Bonus Guide and the pause-menu Main Screen action remain intentional non-functional placeholders.
+- The application now opens on the HMI Studio `96:575` start screen with responsive background, title, and frog parallax layers, English and Russian menu copy, matching language flags, shared mute state, and a short fade-through-black transition into gameplay.
 - Level-complete and game-over overlays now match their HMI Studio layouts, use the shared Geologica/liquid-glass UI language, and remain adapters around the existing score, bonus, high-score, level-transition, and restart state.
 - Camera framing now keeps the baseline orthographic zoom stable and follows the player with a lower-screen reserve for controls.
 - Primary HUD indicators and controls now use local Figma-exported UI assets with lucide fallback icons for non-Figma bonus types instead of emoji glyphs or one-off inline SVG controls.
@@ -206,7 +207,7 @@ Risk level: medium.
 - The style is coherent with arcade Frogger: dark translucent panels, mono typography, bright green/amber accents.
 - The primary HUD frog indicators and end-state overlays now use controlled SVG icons, reducing platform-dependent glyph variance.
 - Buttons use inline SVG arrows and fixed inline styles. A reusable control button component would reduce duplication and improve theming.
-- Pause now exposes master volume and mute controls; reduced-motion settings, input remapping, and broader accessibility settings remain absent.
+- Pause and the start screen expose the shared master mute state; reduced-motion settings, input remapping, and broader accessibility settings remain absent.
 
 Recommended direction:
 

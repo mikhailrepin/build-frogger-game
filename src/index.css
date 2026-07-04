@@ -67,3 +67,288 @@
 html, body, #root { width: 100%; height: 100%; margin: 0; padding: 0; overflow: hidden; }
 body { background: #002713; }
 ::-webkit-scrollbar { display: none; }
+
+.start-screen {
+  --start-bg-x: 0px;
+  --start-bg-y: 0px;
+  --start-logo-x: 0px;
+  --start-logo-y: 0px;
+  --start-frog-x: 0px;
+  --start-frog-y: 0px;
+  position: fixed;
+  inset: 0;
+  isolation: isolate;
+  overflow: hidden;
+  min-width: 280px;
+  color: var(--ui-fg);
+  background: #050505;
+  user-select: none;
+}
+
+.start-screen__background {
+  position: absolute;
+  z-index: -4;
+  inset: -2.5%;
+  transform: translate3d(var(--start-bg-x), var(--start-bg-y), 0);
+  transition: transform 180ms ease-out;
+  will-change: transform;
+}
+
+.start-screen__background::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(to bottom, rgba(0, 0, 0, 0.02) 0%, rgba(0, 0, 0, 0.08) 45%, rgba(0, 0, 0, 0.55) 76%, #000 100%),
+    rgba(0, 0, 0, 0.04);
+}
+
+.start-screen__background img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center center;
+  pointer-events: none;
+}
+
+.start-screen__logo {
+  position: absolute;
+  z-index: -1;
+  top: max(-1.5svh, -12px);
+  left: 50%;
+  width: min(98vw, 396px, 46svh);
+  aspect-ratio: 1;
+  transform: translate3d(calc(-50% + var(--start-logo-x)), var(--start-logo-y), 0);
+  transition: transform 180ms ease-out;
+  will-change: transform;
+}
+
+.start-screen__logo img,
+.start-screen__frog img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  pointer-events: none;
+}
+
+.start-screen__frog {
+  position: absolute;
+  z-index: 0;
+  top: calc(50% + min(30px, 3.5svh));
+  left: 50%;
+  width: min(82vw, 330px, 38svh);
+  aspect-ratio: 551 / 475;
+  transform: translate3d(
+    calc(-50% + var(--start-frog-x)),
+    calc(-50% + var(--start-frog-y)),
+    0
+  );
+  transition: transform 180ms ease-out;
+  will-change: transform;
+}
+
+.start-screen__menu {
+  position: absolute;
+  z-index: 2;
+  inset: auto 0 0;
+  display: flex;
+  min-height: min(54.25svh, 474px);
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  padding:
+    0 max(16px, env(safe-area-inset-right))
+    max(40px, env(safe-area-inset-bottom))
+    max(16px, env(safe-area-inset-left));
+  background: linear-gradient(to bottom, transparent 0%, rgba(0, 0, 0, 0.14) 23%, #000 75.7%);
+}
+
+.start-screen__actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.start-screen__button {
+  display: flex;
+  width: 212px;
+  min-width: 48px;
+  height: 48px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  overflow: hidden;
+  padding: 4px 12px;
+  border: 1px solid var(--ui-glass-border);
+  border-radius: 16px;
+  color: var(--ui-fg);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.05), transparent 50%),
+    rgba(0, 0, 0, 0.2);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 8px 20px rgba(0, 0, 0, 0.14);
+  font: 500 20px/32px 'Geologica', ui-sans-serif, system-ui, sans-serif;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  cursor: pointer;
+  transition:
+    border-color 150ms ease,
+    background-color 150ms ease,
+    box-shadow 150ms ease,
+    transform 150ms ease;
+}
+
+.start-screen__button:hover:not(:disabled) {
+  border-color: rgba(186, 202, 188, 0.72);
+  background-color: rgba(255, 255, 255, 0.06);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.14),
+    0 10px 24px rgba(0, 0, 0, 0.2);
+}
+
+.start-screen__button:focus-visible {
+  outline: 2px solid rgba(132, 205, 76, 0.8);
+  outline-offset: 2px;
+}
+
+.start-screen__button:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.start-screen__button:disabled {
+  cursor: default;
+}
+
+.start-screen__state--on {
+  color: #84cd4c;
+}
+
+.start-screen__state--off {
+  color: #e96f5c;
+}
+
+.start-screen__flag {
+  width: 24px;
+  height: 24px;
+  flex: none;
+}
+
+.start-screen__footer {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: center;
+  gap: 32px;
+  padding-top: 16px;
+  border-radius: 8px;
+  color: white;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 16px;
+  white-space: nowrap;
+  opacity: 0.7;
+}
+
+.start-screen__fade {
+  position: absolute;
+  z-index: 10;
+  inset: 0;
+  background: #000;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 420ms cubic-bezier(0.4, 0, 1, 1);
+}
+
+.start-screen--transitioning .start-screen__fade {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.game-reveal {
+  position: absolute;
+  z-index: 100;
+  inset: 0;
+  background: #000;
+  animation: game-reveal 520ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.game-reveal--reduced {
+  animation-duration: 120ms;
+}
+
+@keyframes game-reveal {
+  0% {
+    opacity: 1;
+    visibility: visible;
+  }
+  99% {
+    pointer-events: auto;
+  }
+  100% {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+  }
+}
+
+@media (max-height: 680px) {
+  .start-screen__menu {
+    min-height: 58svh;
+    padding-bottom: max(16px, env(safe-area-inset-bottom));
+  }
+
+  .start-screen__actions {
+    gap: 8px;
+  }
+
+  .start-screen__button {
+    height: 42px;
+    font-size: 17px;
+    line-height: 28px;
+  }
+
+  .start-screen__footer {
+    padding-top: 8px;
+  }
+}
+
+@media (max-height: 480px) and (orientation: landscape) {
+  .start-screen__menu {
+    right: max(16px, env(safe-area-inset-right));
+    left: auto;
+    width: 244px;
+    min-height: 100%;
+    padding:
+      max(12px, env(safe-area-inset-top))
+      16px
+      max(12px, env(safe-area-inset-bottom));
+    background: linear-gradient(to right, transparent 0%, rgba(0, 0, 0, 0.72) 24%, #000 100%);
+  }
+
+  .start-screen__logo {
+    left: calc(50% - 122px);
+  }
+
+  .start-screen__frog {
+    left: calc(50% - 122px);
+    top: 59%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .start-screen__background,
+  .start-screen__logo,
+  .start-screen__frog,
+  .start-screen__button {
+    transition: none;
+  }
+
+  .start-screen__fade {
+    transition-duration: 90ms;
+  }
+}

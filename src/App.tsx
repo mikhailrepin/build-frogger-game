@@ -1,4 +1,4 @@
-import { useEffect, useState, type ComponentType } from 'react';
+import { useEffect, useRef, useState, type ComponentType } from 'react';
 import { Canvas } from '@react-three/fiber';
 import {
   Anchor,
@@ -9,6 +9,7 @@ import {
 import * as THREE from 'three';
 import { useGame } from './useGame';
 import { GameScene } from './Scene';
+import { MainScreen } from './MainScreen';
 import { PauseOverlay } from './PauseOverlay';
 import { GameOverOverlay, LevelCompleteOverlay } from './EndStateOverlay';
 import type { Direction } from './gameConstants';
@@ -19,6 +20,7 @@ import {
   getAudioSettings,
   toggleAudioMuted,
 } from './audio';
+import { version as APP_VERSION } from '../package.json';
 
 type IconComponent = ComponentType<{ className?: string; strokeWidth?: number }>;
 type BonusKind = 'shield' | 'slowTime' | 'currentAnchor' | 'superHop' | 'fly';
@@ -65,7 +67,21 @@ function ControlButton({ direction, onMove, className = '' }: {
   );
 }
 
-export default function App() {
+interface GameProps {
+  audioSettings: ReturnType<typeof getAudioSettings>;
+  reducedMotion: boolean;
+  onDecreaseVolume: () => void;
+  onIncreaseVolume: () => void;
+  onToggleMuted: () => void;
+}
+
+function Game({
+  audioSettings,
+  reducedMotion,
+  onDecreaseVolume,
+  onIncreaseVolume,
+  onToggleMuted,
+}: GameProps) {
   const {
     frogRef,
     gameState,
@@ -91,10 +107,7 @@ export default function App() {
   } = useGame();
   const [shaking, setShaking] = useState(false);
   const [cellDebug, setCellDebug] = useState<{ row: number; col: number } | null>(null);
-  const [reducedMotion, setReducedMotion] = useState(() => (
-    typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
-  ));
-  const [audioSettings, setAudioSettingsState] = useState(getAudioSettings);
+  const [revealingGame, setRevealingGame] = useState(true);
 
   useEffect(() => {
     if (deathAnimation) {
@@ -123,31 +136,10 @@ export default function App() {
     return () => window.clearInterval(timer);
   }, [devFlags.showCellDebug, frogRef, totalRows]);
 
-  useEffect(() => {
-    const motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
-    const syncMotion = () => setReducedMotion(motionQuery.matches);
-    syncMotion();
-    motionQuery.addEventListener('change', syncMotion);
-
-    return () => {
-      motionQuery.removeEventListener('change', syncMotion);
-    };
-  }, []);
-
   const activeBonusMeta = activeBonus ? BONUS_HUD[activeBonus.kind] : null;
   const ActiveBonusIcon = activeBonusMeta?.Icon;
   const activeBonusText = activeBonus ? Math.max(0, activeBonus.remainingSeconds) : gameState.lives;
   const overlayVisible = gameState.paused || gameState.gameOver || gameState.gameWon;
-  const decreaseVolume = () => {
-    setAudioSettingsState(adjustAudioVolume(-1));
-  };
-  const increaseVolume = () => {
-    setAudioSettingsState(adjustAudioVolume(1));
-  };
-  const toggleMuted = () => {
-    setAudioSettingsState(toggleAudioMuted());
-  };
-
   return (
     <div className="fixed inset-0 select-none overflow-hidden bg-[#002713]">
       <div className={`absolute inset-0 ${shaking && !reducedMotion ? 'animate-shake' : ''}`}>
@@ -297,12 +289,94 @@ export default function App() {
           score={gameState.score}
           volumeLevel={audioSettings.volumeLevel}
           muted={audioSettings.muted}
-          onDecreaseVolume={decreaseVolume}
-          onIncreaseVolume={increaseVolume}
-          onToggleMute={toggleMuted}
+          onDecreaseVolume={onDecreaseVolume}
+          onIncreaseVolume={onIncreaseVolume}
+          onToggleMute={onToggleMuted}
           onResume={togglePause}
         />
       )}
+
+      {revealingGame ? (
+        <div
+          className={`game-reveal ${reducedMotion ? 'game-reveal--reduced' : ''}`}
+          aria-hidden="true"
+          onAnimationEnd={() => setRevealingGame(false)}
+        />
+      ) : null}
     </div>
+  );
+}
+
+type AppPhase = 'menu' | 'leaving-menu' | 'playing';
+
+export default function App() {
+  const [phase, setPhase] = useState<AppPhase>('menu');
+  const [audioSettings, setAudioSettings] = useState(getAudioSettings);
+  const [reducedMotion, setReducedMotion] = useState(() => (
+    typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  ));
+  const startTimerRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    const motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const syncMotion = () => setReducedMotion(motionQuery.matches);
+    syncMotion();
+    motionQuery.addEventListener('change', syncMotion);
+
+    return () => {
+      motionQuery.removeEventListener('change', syncMotion);
+    };
+  }, []);
+
+  useEffect(() => () => {
+    if (startTimerRef.current !== null) {
+      window.clearTimeout(startTimerRef.current);
+    }
+  }, []);
+
+  const startGame = () => {
+    if (phase !== 'menu') {
+      return;
+    }
+
+    setPhase('leaving-menu');
+    startTimerRef.current = window.setTimeout(() => {
+      setPhase('playing');
+      startTimerRef.current = null;
+    }, reducedMotion ? 90 : 420);
+  };
+
+  const decreaseVolume = () => {
+    setAudioSettings(adjustAudioVolume(-1));
+  };
+
+  const increaseVolume = () => {
+    setAudioSettings(adjustAudioVolume(1));
+  };
+
+  const toggleMuted = () => {
+    setAudioSettings(toggleAudioMuted());
+  };
+
+  if (phase !== 'playing') {
+    return (
+      <MainScreen
+        muted={audioSettings.muted}
+        transitioning={phase === 'leaving-menu'}
+        version={APP_VERSION}
+        onStart={startGame}
+        onToggleMuted={toggleMuted}
+      />
+    );
+  }
+
+  return (
+    <Game
+      audioSettings={audioSettings}
+      reducedMotion={reducedMotion}
+      onDecreaseVolume={decreaseVolume}
+      onIncreaseVolume={increaseVolume}
+      onToggleMuted={toggleMuted}
+    />
   );
 }
