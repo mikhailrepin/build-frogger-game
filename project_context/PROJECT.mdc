@@ -55,6 +55,7 @@ Result: production build succeeds.
 - The top HUD now uses the Figma-aligned compact capsule layout with `Geologica` typography, local UI assets, liquid-glass treatment, score, health or active bonus countdown, level, and pause.
 - The pause overlay now matches the HMI Studio layout and exposes four visible master-volume segments plus a zero-volume state, synchronized mute behavior, resume control, and a functional Main Screen action guarded by the HMI Studio `98:995` confirmation dialog; Bonus Guide remains an intentional non-functional placeholder.
 - The application now opens on the HMI Studio `96:575` start screen with responsive background, title, and frog parallax layers, matching language flags, shared mute state, and a short fade-through-black transition into gameplay.
+- The start screen loops `public/sounds/main-menu.mp3`; the shared audio adapter keeps its mute and volume synchronized with gameplay audio, retries after the first browser-approved interaction when autoplay is blocked, and disposes the media element when gameplay starts.
 - English and Russian copy is shared across the start screen, gameplay HUD and controls, pause, level-complete, game-over, and main-screen exit confirmation.
 - Level-complete and game-over overlays now match their HMI Studio layouts, use the shared Geologica/liquid-glass UI language, remain adapters around the existing score, bonus, high-score, level-transition, and restart state, and render in the locale selected on the start screen.
 - Camera framing now keeps the baseline orthographic zoom stable and follows the player with a lower-screen reserve for controls.
@@ -208,7 +209,7 @@ Risk level: medium.
 - The style is coherent with arcade Frogger: dark translucent panels, mono typography, bright green/amber accents.
 - The primary HUD frog indicators and end-state overlays now use controlled SVG icons, reducing platform-dependent glyph variance.
 - Buttons use inline SVG arrows and fixed inline styles. A reusable control button component would reduce duplication and improve theming.
-- Pause and the start screen expose the shared master mute state; reduced-motion settings, input remapping, and broader accessibility settings remain absent.
+- Pause and the start screen expose the shared mute and volume state across procedural gameplay audio and main-menu media playback; reduced-motion settings, input remapping, and broader accessibility settings remain absent.
 
 Recommended direction:
 

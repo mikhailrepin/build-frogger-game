@@ -1,4 +1,4 @@
-/* Web Audio API sound system — all sounds generated procedurally */
+/* Shared audio adapter for procedural game audio and streamed menu music. */
 
 let ctx: AudioContext | null = null;
 let masterGain: GainNode | null = null;
@@ -8,6 +8,8 @@ let musicOsc2: OscillatorNode | null = null;
 let musicLfo: OscillatorNode | null = null;
 let musicPlaying = false;
 const MASTER_GAIN_MAX = 0.3;
+const MAIN_MENU_MUSIC_PATH = '/sounds/main-menu.mp3';
+const MAIN_MENU_VOLUME_MAX = 0.45;
 
 export const AUDIO_VOLUME_LEVELS = 4;
 export const MIN_AUDIO_VOLUME_LEVEL = 0;
@@ -22,6 +24,8 @@ let audioSettings: AudioSettings = {
   volumeLevel: DEFAULT_AUDIO_VOLUME_LEVEL,
   muted: false,
 };
+let mainMenuAudio: HTMLAudioElement | null = null;
+let mainMenuMusicRequested = false;
 
 function clampVolumeLevel(level: number) {
   return Math.max(MIN_AUDIO_VOLUME_LEVEL, Math.min(AUDIO_VOLUME_LEVELS, Math.round(level)));
@@ -38,6 +42,41 @@ function syncMasterGain() {
   const now = ctx.currentTime;
   masterGain.gain.cancelScheduledValues(now);
   masterGain.gain.setTargetAtTime(getMasterGainValue(), now, 0.015);
+}
+
+function getMainMenuVolume() {
+  return MAIN_MENU_VOLUME_MAX * audioSettings.volumeLevel / AUDIO_VOLUME_LEVELS;
+}
+
+function syncMainMenuAudio() {
+  if (!mainMenuAudio) return;
+  mainMenuAudio.muted = audioSettings.muted;
+  mainMenuAudio.volume = getMainMenuVolume();
+}
+
+function syncAudioOutputs() {
+  syncMasterGain();
+  syncMainMenuAudio();
+}
+
+function getMainMenuAudio() {
+  if (mainMenuAudio || typeof Audio === 'undefined') {
+    return mainMenuAudio;
+  }
+
+  const audio = new Audio(MAIN_MENU_MUSIC_PATH);
+  audio.dataset.audioChannel = 'main-menu';
+  audio.loop = true;
+  audio.preload = 'auto';
+  audio.setAttribute('aria-hidden', 'true');
+  mainMenuAudio = audio;
+  syncMainMenuAudio();
+
+  if (typeof document !== 'undefined') {
+    document.body.append(audio);
+  }
+
+  return audio;
 }
 
 function getCtx() {
@@ -64,7 +103,7 @@ export function setAudioVolumeLevel(volumeLevel: number) {
     volumeLevel: nextVolumeLevel,
     muted: nextVolumeLevel === MIN_AUDIO_VOLUME_LEVEL,
   };
-  syncMasterGain();
+  syncAudioOutputs();
   return getAudioSettings();
 }
 
@@ -75,7 +114,7 @@ export function setAudioMuted(muted: boolean) {
       : Math.max(1, audioSettings.volumeLevel),
     muted,
   };
-  syncMasterGain();
+  syncAudioOutputs();
   return getAudioSettings();
 }
 
@@ -85,6 +124,46 @@ export function adjustAudioVolume(delta: number) {
 
 export function toggleAudioMuted() {
   return setAudioMuted(!audioSettings.muted);
+}
+
+export async function startMainMenuMusic() {
+  mainMenuMusicRequested = true;
+  stopMusic();
+  const audio = getMainMenuAudio();
+  if (!audio) {
+    return false;
+  }
+
+  syncMainMenuAudio();
+  if (!audio.paused) {
+    return true;
+  }
+
+  try {
+    await audio.play();
+    return !audio.paused;
+  } catch {
+    // Browsers may reject autoplay until the first user interaction.
+    return false;
+  }
+}
+
+export function stopMainMenuMusic() {
+  mainMenuMusicRequested = false;
+  if (!mainMenuAudio) return;
+
+  mainMenuAudio.pause();
+  try {
+    mainMenuAudio.currentTime = 0;
+  } catch {
+    // Ignore media that has not loaded metadata yet.
+  }
+  mainMenuAudio.remove();
+  mainMenuAudio = null;
+}
+
+export function isMainMenuMusicRequested() {
+  return mainMenuMusicRequested;
 }
 
 function disconnectNode(node: AudioNode | null | undefined) {
@@ -189,6 +268,7 @@ let melodyIdx = 0;
 let ambientOsc: OscillatorNode | null = null;
 
 export function startMusic() {
+  stopMainMenuMusic();
   if (musicPlaying) return;
   musicPlaying = true;
   const c = getCtx();

@@ -1,5 +1,5 @@
 ---
-context_version: 0.3.0
+context_version: 0.3.1
 status: active
 updated: 2026-07-04
 ---
@@ -24,7 +24,7 @@ updated: 2026-07-04
 - Gameplay metrics persistence sink: [gameMetricsStorage.ts](../src/gameMetricsStorage.ts)
 - Replay capture and QA playback: [gameReplay.ts](../src/gameReplay.ts)
 - Challenge session and reward flow: [gameChallenge.ts](../src/gameChallenge.ts)
-- Procedural audio adapter: [audio.ts](../src/audio.ts)
+- Shared procedural and media audio adapter: [audio.ts](../src/audio.ts)
 - Styling: [index.css](../src/index.css)
 
 ## Current Flow
@@ -52,7 +52,7 @@ updated: 2026-07-04
 - Road markings in [Scene.tsx](../src/Scene.tsx) use a dedicated Y offset and non-writing depth material to avoid z-fighting shimmer during camera movement.
 - Water in [Scene.tsx](../src/Scene.tsx) is rendered as one continuous shader surface per contiguous river section with `#0045A0` coloration; longitudinal current streaks follow each lane's platform direction and blend across lane boundaries, while the lily-pad goal lane uses static water. The general level background is `#072615` and the board plinth material remains separate.
 - The DOM HUD in [App.tsx](../src/App.tsx) uses Figma-exported UI assets from `public/ui`, `Geologica` typography, and liquid-glass panel styling while keeping touch controls visible across pointer classes so mobile devices always have an input path.
-- [MainScreen.tsx](../src/MainScreen.tsx) keeps the background, title art, and frog on separate responsive parallax layers; the game runtime is not mounted until Start Game completes its short fade-to-black transition. English and Russian menu copy share the existing audio mute adapter, while the footer reads the application version from `package.json`.
+- [MainScreen.tsx](../src/MainScreen.tsx) keeps the background, title art, and frog on separate responsive parallax layers; the game runtime is not mounted until Start Game completes its short fade-to-black transition. The looping `public/sounds/main-menu.mp3` track is active only while the main-screen phase is mounted, shares mute and volume settings with gameplay audio through [audio.ts](../src/audio.ts), and retries playback after the first user gesture when browser autoplay policy blocks the initial attempt. The footer reads the application version from `package.json`.
 - [localization.ts](../src/localization.ts) is the shared source for English and Russian start-screen, gameplay, pause, level-complete, game-over, and exit-confirmation copy. [App.tsx](../src/App.tsx) owns the selected locale so it survives game entry and return to the main screen.
 - [gameInput.ts](../src/gameInput.ts) maps physical `KeyboardEvent.code` values to semantic move, pause, restart, and dev-step actions, keeping controls independent from the active keyboard layout.
 - Gameplay, pause, and game-over keyboard help remains in layout but is rendered at zero opacity on phone-sized portrait and landscape viewports.

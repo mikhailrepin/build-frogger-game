@@ -1,10 +1,51 @@
 ---
-context_version: 0.3.0
+context_version: 0.3.2
 status: active
 updated: 2026-07-04
 ---
 
 # Context Changelog
+
+## 1.33.1 - 2026-07-04
+
+Changed files and notes:
+
+- [HTML entry point](../index.html)
+- [Browser favicon](../public/favicon.ico)
+- [Context index](00%20Context%20Index.md)
+
+Reason:
+
+- Browser metadata needed the project favicon instead of the frog emoji and the requested product title.
+
+Implementation impact:
+
+- Browser tabs use `favicon.ico` and display `Froggy Urban Spash`.
+
+## 1.33.0 - 2026-07-04
+
+Changed files and notes:
+
+- [audio.ts](../src/audio.ts)
+- [audio.test.ts](../src/audio.test.ts)
+- [App.tsx](../src/App.tsx)
+- [Main-menu melody](../public/sounds/main-menu.mp3)
+- [Context index](00%20Context%20Index.md)
+- [Architecture Map](Architecture%20Map.md)
+- [Implementation Notes](Implementation%20Notes.md)
+- [Project audit](PROJECT.mdc)
+
+Reason:
+
+- The main screen needed a dedicated looping melody that obeys the existing audio controls.
+- Browser autoplay restrictions require a retry on the first user interaction.
+
+Implementation impact:
+
+- `main-menu.mp3` loops only during the main-screen phase and stops before gameplay.
+- Mute and volume changes update both the procedural Web Audio graph and the menu media element.
+- Returning from pause to the main screen restarts menu playback within the confirmed user interaction.
+- Audio tests cover looping, mute, volume scaling, and disposal.
 
 ## 1.32.0 - 2026-07-04
 

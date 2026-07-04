@@ -4,12 +4,16 @@ import {
   DEFAULT_AUDIO_VOLUME_LEVEL,
   adjustAudioVolume,
   getAudioSettings,
+  isMainMenuMusicRequested,
   setAudioMuted,
   setAudioVolumeLevel,
+  startMainMenuMusic,
+  stopMainMenuMusic,
   toggleAudioMuted,
 } from './audio';
 
 afterEach(() => {
+  stopMainMenuMusic();
   setAudioVolumeLevel(DEFAULT_AUDIO_VOLUME_LEVEL);
   setAudioMuted(false);
 });
@@ -75,5 +79,75 @@ describe('audio settings', () => {
       volumeLevel: 2 + delta,
       muted: false,
     });
+  });
+
+  it('loops main-menu music and synchronizes mute and volume settings', async () => {
+    let createdAudio: FakeAudio | null = null;
+
+    class FakeAudio {
+      dataset: Record<string, string> = {};
+      loop = false;
+      muted = false;
+      paused = true;
+      preload = '';
+      currentTime = 12;
+      volume = 1;
+      readonly src: string;
+
+      constructor(src: string) {
+        this.src = src;
+        createdAudio = this;
+      }
+
+      setAttribute() {}
+
+      async play() {
+        this.paused = false;
+      }
+
+      pause() {
+        this.paused = true;
+      }
+
+      remove() {}
+    }
+
+    const originalAudio = globalThis.Audio;
+    globalThis.Audio = FakeAudio as unknown as typeof Audio;
+
+    try {
+      await expect(startMainMenuMusic()).resolves.toBe(true);
+      expect(isMainMenuMusicRequested()).toBe(true);
+      expect(createdAudio).toMatchObject({
+        src: '/sounds/main-menu.mp3',
+        loop: true,
+        muted: false,
+        paused: false,
+        preload: 'auto',
+        volume: 0.225,
+      });
+
+      setAudioMuted(true);
+      expect(createdAudio).toMatchObject({
+        muted: true,
+        paused: false,
+      });
+
+      setAudioMuted(false);
+      setAudioVolumeLevel(4);
+      expect(createdAudio).toMatchObject({
+        muted: false,
+        volume: 0.45,
+      });
+
+      stopMainMenuMusic();
+      expect(isMainMenuMusicRequested()).toBe(false);
+      expect(createdAudio).toMatchObject({
+        paused: true,
+        currentTime: 0,
+      });
+    } finally {
+      globalThis.Audio = originalAudio;
+    }
   });
 });

@@ -18,6 +18,8 @@ import { getRowFromY } from './gameCore';
 import {
   adjustAudioVolume,
   getAudioSettings,
+  startMainMenuMusic,
+  stopMainMenuMusic,
   toggleAudioMuted,
 } from './audio';
 import { version as APP_VERSION } from '../package.json';
@@ -328,6 +330,7 @@ export default function App() {
     typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
   ));
   const startTimerRef = useRef<number | null>(null);
+  const mainMenuActive = phase !== 'playing';
 
   useEffect(() => {
     const motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
@@ -345,6 +348,29 @@ export default function App() {
       window.clearTimeout(startTimerRef.current);
     }
   }, []);
+
+  useEffect(() => {
+    if (!mainMenuActive) {
+      stopMainMenuMusic();
+      return;
+    }
+
+    const requestPlayback = () => {
+      void startMainMenuMusic();
+    };
+
+    requestPlayback();
+    window.addEventListener('pointerdown', requestPlayback);
+    window.addEventListener('click', requestPlayback);
+    window.addEventListener('keydown', requestPlayback);
+
+    return () => {
+      window.removeEventListener('pointerdown', requestPlayback);
+      window.removeEventListener('click', requestPlayback);
+      window.removeEventListener('keydown', requestPlayback);
+      stopMainMenuMusic();
+    };
+  }, [mainMenuActive]);
 
   const startGame = () => {
     if (phase !== 'menu') {
@@ -370,6 +396,11 @@ export default function App() {
     setAudioSettings(toggleAudioMuted());
   };
 
+  const exitToMainScreen = () => {
+    void startMainMenuMusic();
+    setPhase('menu');
+  };
+
   if (phase !== 'playing') {
     return (
       <MainScreen
@@ -391,7 +422,7 @@ export default function App() {
       reducedMotion={reducedMotion}
       onDecreaseVolume={decreaseVolume}
       onIncreaseVolume={increaseVolume}
-      onExitToMainScreen={() => setPhase('menu')}
+      onExitToMainScreen={exitToMainScreen}
       onToggleMuted={toggleMuted}
     />
   );
