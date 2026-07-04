@@ -1,5 +1,5 @@
 ---
-context_version: 0.4.0
+context_version: 0.5.2
 status: active
 updated: 2026-07-04
 ---

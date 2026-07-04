@@ -1,10 +1,77 @@
 ---
-context_version: 0.4.0
+context_version: 0.5.2
 status: active
 updated: 2026-07-04
 ---
 
 # Context Changelog
+
+## 1.35.2 - 2026-07-04
+
+Changed files and notes:
+
+- [BonusGuideOverlay.tsx](../src/BonusGuideOverlay.tsx)
+- [Architecture Map](Architecture%20Map.md)
+
+Reason:
+
+- Bonus descriptions with different line counts changed the dialog height and shifted the guide footer.
+
+Implementation impact:
+
+- The guide wrapper now consumes the available viewport height up to its design cap, while retaining a minimum height for whole-dialog scrolling on very short viewports.
+- The bonus card receives the remaining flex space, and excess description text scrolls inside its existing dedicated region without moving the card or footer.
+
+## 1.35.1 - 2026-07-04
+
+Changed files and notes:
+
+- [audio.ts](../src/audio.ts)
+- [audio.test.ts](../src/audio.test.ts)
+- [useGame.ts](../src/useGame.ts)
+- [Context index](00%20Context%20Index.md)
+- [Architecture Map](Architecture%20Map.md)
+- [Implementation Notes](Implementation%20Notes.md)
+- [Project audit](PROJECT.mdc)
+
+Reason:
+
+- Jump playback needed a slightly lower mix level.
+- Level-complete and game-over cues were invoked as side effects inside React state updater callbacks, making their execution unreliable.
+
+Implementation impact:
+
+- Jump gain is reduced from `0.78` to `0.64`.
+- `complete.mp3` and `defeat.mp3` now start from committed `gameWon` and `gameOver` state effects with one-shot guards.
+- End-state metrics and audio no longer run inside state updater functions.
+- Tests assert the jump gain and direct playback of both end-state buffers; browser QA reaches the real Level Complete state through deterministic dev flags.
+
+## 1.35.0 - 2026-07-04
+
+Changed files and notes:
+
+- [audio.ts](../src/audio.ts)
+- [audio.test.ts](../src/audio.test.ts)
+- [useGame.ts](../src/useGame.ts)
+- [App.tsx](../src/App.tsx)
+- [Gameplay sound bank](../public/sounds)
+- [Context index](00%20Context%20Index.md)
+- [Architecture Map](Architecture%20Map.md)
+- [Implementation Notes](Implementation%20Notes.md)
+- [Project audit](PROJECT.mdc)
+
+Reason:
+
+- Named MP3 assets needed to replace procedural cues for jump, road collision, water splash, goal capture, bonus pickup, level completion, and game over.
+- Rapid actions, restarts, mute changes, and long silent file tails required deterministic playback and cleanup.
+
+Implementation impact:
+
+- [audio.ts](../src/audio.ts) preloads and decodes every gameplay effect once, caches its buffer and audible duration, and creates an independent one-shot source per event.
+- Per-sound voice limits bound rapid overlap; mutually exclusive death, reward, and terminal cues use explicit replacement groups and short fades.
+- [useGame.ts](../src/useGame.ts) maps the seven named cues to their matching events and stops active effects during restart and unmount.
+- Mute suppresses new effect sources, while the existing master gain keeps all music and effects synchronized with volume controls.
+- Audio tests cover asset mapping, one-time preload, jump polyphony, death-cue replacement, mute suppression, and cleanup. Browser QA confirms all assets are fetched and the start, rapid-jump, pause, mute, and resume path remains error-free.
 
 ## 1.34.0 - 2026-07-04
 

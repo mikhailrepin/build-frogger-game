@@ -26,7 +26,7 @@ Result: production build succeeds.
 - High score storage adapter: `src/highScoreStorage.ts`.
 - Gameplay metrics adapter: `src/gameMetrics.ts`.
 - Replay capture and QA playback: `src/gameReplay.ts`.
-- Procedural Web Audio system: `src/audio.ts`.
+- Shared procedural music, menu media, and decoded gameplay-sound adapter: `src/audio.ts`.
 - The project is a custom React/R3F game implementation, not a Phaser-based 2D game.
 - Procedural generation now includes deterministic level modifiers, so some levels intentionally play differently rather than only becoming longer or faster.
 
@@ -49,6 +49,8 @@ Result: production build succeeds.
 - Touch controls stay visible as the primary mobile input path, while keyboard help keeps its layout space but becomes fully transparent on phone-sized viewports.
 - Keyboard controls now use physical `KeyboardEvent.code` mappings, so WASD, pause, restart, and dev-step controls do not depend on the active character layout.
 - Audio cleanup now disconnects one-shot nodes after playback and detaches active music nodes on stop.
+- Named gameplay MP3 effects are preloaded and decoded once, use bounded one-shot voice pools, trim trailing silence, share the existing master volume/mute path, and are stopped on restart or game unmount.
+- Level-complete and game-over audio is triggered only after React commits the matching end state, rather than from within state updater callbacks.
 - Playable top bounds and river edge buffers now use named constants from `src/gameConstants.ts`.
 - Several scene heights now use named render constants for water, board shell, frog shadow, and lane surfaces.
 - Dev overlay can now show the frog's current row and column through a dedicated query flag.

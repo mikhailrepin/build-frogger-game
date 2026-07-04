@@ -80,8 +80,11 @@ import {
   playGoalReached,
   playLevelComplete,
   playGameOver,
+  playBonusCollected,
   playScore,
   startMusic,
+  stopAllGameSounds,
+  stopGameSoundGroup,
   stopMusic,
 } from './audio';
 import { getKeyboardGameAction } from './gameInput';
@@ -143,6 +146,8 @@ export function useGame() {
   const challengeSessionRef = useRef<ChallengeSession>(createChallengeSession(Date.now()));
   const stepRequestedRef = useRef(false);
   const firstMoveRecordedRef = useRef(false);
+  const gameOverSoundPlayedRef = useRef(false);
+  const levelCompleteSoundPlayedRef = useRef(false);
   const gameStateRef = useRef(gameState);
   const laneItemsRef = useRef(laneItems);
   const bonusItemsRef = useRef(bonusItems);
@@ -397,6 +402,31 @@ export function useGame() {
   }, [gameState.highScore]);
 
   useEffect(() => {
+    if (!gameState.gameOver) {
+      gameOverSoundPlayedRef.current = false;
+      return;
+    }
+    if (gameOverSoundPlayedRef.current) return;
+
+    gameOverSoundPlayedRef.current = true;
+    void playGameOver();
+    stopMusic();
+    recordGameEvent('game_over', { score: gameState.score, level: gameState.level });
+  }, [gameState.gameOver, gameState.level, gameState.score]);
+
+  useEffect(() => {
+    if (!gameState.gameWon) {
+      levelCompleteSoundPlayedRef.current = false;
+      return;
+    }
+    if (levelCompleteSoundPlayedRef.current) return;
+
+    levelCompleteSoundPlayedRef.current = true;
+    void playLevelComplete();
+    recordGameEvent('level_complete', { level: gameState.level });
+  }, [gameState.gameWon, gameState.level]);
+
+  useEffect(() => {
     const timer = window.setInterval(() => {
       setHudClockNow(Date.now());
     }, 1000);
@@ -474,6 +504,7 @@ export function useGame() {
 
   const restartGame = useCallback((source: ReplayInputSource = 'keyboard') => {
     clearPendingTimers();
+    stopAllGameSounds();
 
     const gs = gameStateRef.current;
     const nextLevel = gs.gameOver ? initialLevel : gs.level;
@@ -540,15 +571,8 @@ export function useGame() {
 
     deathTimeoutRef.current = window.setTimeout(() => {
       deathTimeoutRef.current = null;
-      setGameState((prev) => {
-        const next = applyLifeLoss(prev, devFlagsRef.current.infiniteLives);
-        if (next.gameOver && !prev.gameOver) {
-          playGameOver();
-          stopMusic();
-          recordGameEvent('game_over', { score: next.score, level: next.level });
-        }
-        return next;
-      });
+      stopGameSoundGroup('death');
+      setGameState((prev) => applyLifeLoss(prev, devFlagsRef.current.infiniteLives));
 
       resetFrog(rowsRef.current);
     }, 800);
@@ -601,7 +625,7 @@ export function useGame() {
     bonusItemsRef.current = nextItems;
     setBonusItems(nextItems);
     clearActiveBonuses();
-    playScore();
+    playBonusCollected();
     if (bonus.kind === 'fly') {
       awardScore(FLY_BONUS_SCORE);
       activateFlyCombo();
@@ -840,19 +864,14 @@ export function useGame() {
               const clearBonus = computeLevelClearScore(challengeSessionRef.current, Date.now());
               setChallengeBonus(clearBonus.score);
 
-              setGameState((prev) => {
-                const next = resolveGoalHit(
+              setGameState((prev) => (
+                resolveGoalHit(
                   prev,
                   goalIdx,
                   flags.forceLevelComplete,
                   goalScore.result.score + clearBonus.score,
-                );
-                if (next.allDone) {
-                  playLevelComplete();
-                  recordGameEvent('level_complete', { level: next.state.level });
-                }
-                return next.state;
-              });
+                ).state
+              ));
 
               resetFrog(rows);
             } else if (!flags.forceGoal) {
@@ -906,6 +925,7 @@ export function useGame() {
   useEffect(() => {
     return () => {
       clearPendingTimers();
+      stopAllGameSounds();
       stopMusic();
       cancelAnimationFrame(animFrameRef.current);
     };

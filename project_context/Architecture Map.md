@@ -1,5 +1,5 @@
 ---
-context_version: 0.4.0
+context_version: 0.5.2
 status: active
 updated: 2026-07-04
 ---
@@ -27,7 +27,7 @@ updated: 2026-07-04
 - Gameplay metrics persistence sink: [gameMetricsStorage.ts](../src/gameMetricsStorage.ts)
 - Replay capture and QA playback: [gameReplay.ts](../src/gameReplay.ts)
 - Challenge session and reward flow: [gameChallenge.ts](../src/gameChallenge.ts)
-- Shared procedural and media audio adapter: [audio.ts](../src/audio.ts)
+- Shared procedural music, menu media, and decoded gameplay-sound adapter: [audio.ts](../src/audio.ts)
 - Styling: [index.css](../src/index.css)
 
 ## Current Flow
@@ -41,7 +41,7 @@ updated: 2026-07-04
 7. [gameMetricsStorage.ts](../src/gameMetricsStorage.ts) drains the event buffer into a local persistent snapshot for later review.
 8. [gameReplay.ts](../src/gameReplay.ts) records deterministic input and state snapshots for QA reproduction.
 9. [gameChallenge.ts](../src/gameChallenge.ts) owns challenge-session state transitions and reward scoring helpers.
-10. [audio.ts](../src/audio.ts) creates Web Audio effects and music.
+10. [audio.ts](../src/audio.ts) preloads and decodes named gameplay MP3 effects, creates procedural gameplay music, and owns the main-menu media element.
 
 ## Stability Notes
 
@@ -56,11 +56,13 @@ updated: 2026-07-04
 - Water in [Scene.tsx](../src/Scene.tsx) is rendered as one continuous shader surface per contiguous river section with `#0045A0` coloration; longitudinal current streaks follow each lane's platform direction and blend across lane boundaries, while the lily-pad goal lane uses static water. The general level background is `#072615` and the board plinth material remains separate.
 - The DOM HUD in [App.tsx](../src/App.tsx) uses Figma-exported UI assets from `public/ui`, `Geologica` typography, and liquid-glass panel styling while keeping touch controls visible across pointer classes so mobile devices always have an input path.
 - [MainScreen.tsx](../src/MainScreen.tsx) keeps the background, title art, and frog on separate responsive parallax layers; the game runtime is not mounted until Start Game completes its short fade-to-black transition. The looping `public/sounds/main-menu.mp3` track stays active across the `menu` and `menu-guide` phases, shares mute and volume settings with gameplay audio through [audio.ts](../src/audio.ts), and retries playback after the first user gesture when browser autoplay policy blocks the initial attempt. The footer reads the application version from `package.json`.
+- [audio.ts](../src/audio.ts) preloads the named effects in [public/sounds](../public/sounds) once, caches decoded `AudioBuffer` instances, and creates a fresh one-shot source for each gameplay event. Per-sound voice limits prevent rapid input from building unbounded overlap; death, reward, and terminal groups replace only mutually exclusive cues with a short fade. Trailing silence is measured once after decode and omitted during playback, while restart, game exit, and unmount paths stop active sources.
+- Level-complete and game-over sounds are driven by committed `gameWon` and `gameOver` state in [useGame.ts](../src/useGame.ts), with one-shot refs reset on the next round. Audio and metrics side effects must not run inside React state updater functions.
 - [localization.ts](../src/localization.ts) is the shared source for English and Russian start-screen, gameplay, pause, Bonus Guide, level-complete, game-over, and exit-confirmation copy. [App.tsx](../src/App.tsx) owns the selected locale so it survives game entry and return to the main screen.
 - [gameInput.ts](../src/gameInput.ts) maps physical `KeyboardEvent.code` values to semantic move, pause, restart, and dev-step actions, keeping controls independent from the active keyboard layout.
 - Gameplay, pause, and game-over keyboard help remains in layout but is rendered at zero opacity on phone-sized portrait and landscape viewports.
 - The Figma-aligned pause dialog in [PauseOverlay.tsx](../src/PauseOverlay.tsx) owns pause-only controls, opens [BonusGuideOverlay.tsx](../src/BonusGuideOverlay.tsx) without resuming the simulation, and opens [ConfirmExitOverlay.tsx](../src/ConfirmExitOverlay.tsx) before abandoning the current level for the main screen. [audio.ts](../src/audio.ts) exposes one `0..4` master-volume and mute adapter shared by music and effects.
-- [BonusGuideOverlay.tsx](../src/BonusGuideOverlay.tsx) supports entry from the main menu and pause, cyclic pointer/keyboard navigation, pagination, reduced motion, a separately scrollable description, and whole-dialog scrolling for short landscape viewports. Exit returns to the source surface; Back to Game is available only from pause.
+- [BonusGuideOverlay.tsx](../src/BonusGuideOverlay.tsx) supports entry from the main menu and pause, cyclic pointer/keyboard navigation, pagination, and reduced motion. Its viewport-bounded flex layout keeps the card and footer stationary across description lengths, gives the card the available vertical space, and scrolls only the description when that space is insufficient; very short landscape viewports retain whole-dialog scrolling through the dialog's minimum height. Exit returns to the source surface; Back to Game is available only from pause.
 - [EndStateOverlay.tsx](../src/EndStateOverlay.tsx) renders the Figma-aligned level-complete and game-over DOM surfaces; [App.tsx](../src/App.tsx) supplies existing score, bonus, best-score, completed-level, and restart data without moving lifecycle rules into the UI.
 - Active bonus state in [useGame.ts](../src/useGame.ts) is exclusive: every pickup clears all prior effect refs, flags, fly charges, and timeouts before activating the collected bonus. [gameChallenge.ts](../src/gameChallenge.ts) resets the HUD timer on replacement, and [App.tsx](../src/App.tsx) renders one bonus icon plus the remaining seconds.
 - [viewMath.ts](../src/viewMath.ts) is a pure helper and a good template for more visual-fit calculations.

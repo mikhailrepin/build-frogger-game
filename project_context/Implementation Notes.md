@@ -1,5 +1,5 @@
 ---
-context_version: 0.4.0
+context_version: 0.5.2
 status: active
 updated: 2026-07-04
 ---
@@ -35,6 +35,7 @@ When documentation mentions implementation details, include links to the relevan
 - Replay capture and QA playback: [gameReplay.ts](../src/gameReplay.ts)
 - Challenge session and reward flow: [gameChallenge.ts](../src/gameChallenge.ts)
 - Audio: [audio.ts](../src/audio.ts)
+- Gameplay sound bank: [public/sounds](../public/sounds)
 
 ## Implementation Checklist
 

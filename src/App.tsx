@@ -19,6 +19,7 @@ import { getRowFromY } from './gameCore';
 import {
   adjustAudioVolume,
   getAudioSettings,
+  preloadGameSounds,
   startMainMenuMusic,
   stopMainMenuMusic,
   toggleAudioMuted,
@@ -333,6 +334,10 @@ export default function App() {
   ));
   const startTimerRef = useRef<number | null>(null);
   const mainMenuActive = phase !== 'playing';
+
+  useEffect(() => {
+    void preloadGameSounds();
+  }, []);
 
   useEffect(() => {
     const motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');

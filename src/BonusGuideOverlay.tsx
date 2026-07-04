@@ -119,7 +119,7 @@ export function BonusGuideOverlay({
       className="ui-font absolute inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/70 text-[var(--ui-fg)] backdrop-blur-[4.5px]"
       lang={locale}
     >
-      <div className="flex min-h-[min(100%,874px)] w-full max-w-[402px] flex-col items-center justify-center gap-2.5 px-4 py-4">
+      <div className="flex h-[min(100%,874px)] min-h-[560px] w-full max-w-[402px] flex-col items-center justify-center gap-2.5 px-4 py-4">
         <section className="flex min-h-[180px] w-full min-w-0 flex-1 flex-col items-center justify-center gap-6 pb-6 pt-4">
           <h2
             id="bonus-guide-title"

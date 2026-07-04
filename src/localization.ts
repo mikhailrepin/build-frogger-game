@@ -166,7 +166,7 @@ export const UI_COPY = {
       soundOn: 'Вкл',
       soundOff: 'Выкл',
       language: 'Язык',
-      switchLanguage: 'Переключить язык на английский',
+      switchLanguage: 'Переключить на английский',
       gameTitle: 'Froggy Urban Splash!',
     },
     game: {
@@ -185,8 +185,8 @@ export const UI_COPY = {
       title: 'Пауза',
       score: 'Счёт',
       volume: 'Громкость',
-      decreaseVolume: 'Уменьшить громкость',
-      increaseVolume: 'Увеличить громкость',
+      decreaseVolume: 'Тише',
+      increaseVolume: 'Громче',
       sound: 'Звук',
       soundOn: 'Вкл',
       soundOff: 'Выкл',
@@ -196,12 +196,12 @@ export const UI_COPY = {
       resumeHelp: 'Продолжить',
     },
     bonusGuide: {
-      title: 'Гид по бонусам',
+      title: 'Бонусы',
       exitGuide: 'Закрыть гид',
-      backToGame: 'Вернуться в игру',
+      backToGame: 'Назад к игре',
       resumeHelp: 'Продолжить',
-      previous: 'Предыдущий бонус',
-      next: 'Следующий бонус',
+      previous: 'Пред. бонус',
+      next: 'След. бонус',
       pageLabel: 'Бонус',
       bonuses: {
         shield: {
@@ -240,7 +240,7 @@ export const UI_COPY = {
     },
     confirmExit: {
       title: 'Выйти на главный экран?',
-      description: 'При выходе прогресс текущего уровня будет потерян, и его придётся начать заново.',
+      description: 'При выходе прогресс текущего уровня будет потерян.',
       resume: 'Продолжить',
       exitToMenu: 'Выйти в меню',
       exitHelp: 'Esc — выйти',
