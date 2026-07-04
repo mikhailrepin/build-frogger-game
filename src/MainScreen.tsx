@@ -1,6 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
-
-type Locale = 'en' | 'ru';
+import { useEffect, useRef } from 'react';
+import { UI_COPY, type Locale } from './localization';
 
 const MAIN_SCREEN_ASSETS = {
   background: '/main-screen/background.png',
@@ -12,48 +11,28 @@ const MAIN_SCREEN_ASSETS = {
   } satisfies Record<Locale, string>,
 };
 
-const COPY = {
-  en: {
-    start: 'Start Game',
-    bonusGuide: 'Bonus Guide',
-    sound: 'Sound',
-    soundOn: 'On',
-    soundOff: 'Off',
-    language: 'Language',
-    switchLanguage: 'Switch language to Russian',
-    gameTitle: 'Froggy Urban Splash!',
-  },
-  ru: {
-    start: 'Начать игру',
-    bonusGuide: 'Бонусы',
-    sound: 'Звук',
-    soundOn: 'Вкл',
-    soundOff: 'Выкл',
-    language: 'Язык',
-    switchLanguage: 'Переключить язык на английский',
-    gameTitle: 'Froggy Urban Splash!',
-  },
-} satisfies Record<Locale, Record<string, string>>;
-
 interface MainScreenProps {
+  locale: Locale;
   muted: boolean;
   transitioning: boolean;
   version: string;
+  onLocaleChange: (locale: Locale) => void;
   onStart: () => void;
   onToggleMuted: () => void;
 }
 
 export function MainScreen({
+  locale,
   muted,
   transitioning,
   version,
+  onLocaleChange,
   onStart,
   onToggleMuted,
 }: MainScreenProps) {
-  const [locale, setLocale] = useState<Locale>('en');
   const screenRef = useRef<HTMLDivElement>(null);
   const animationFrameRef = useRef<number | null>(null);
-  const copy = COPY[locale];
+  const copy = UI_COPY[locale].mainScreen;
 
   useEffect(() => {
     const screen = screenRef.current;
@@ -105,7 +84,7 @@ export function MainScreen({
   }, []);
 
   const toggleLocale = () => {
-    setLocale((current) => (current === 'en' ? 'ru' : 'en'));
+    onLocaleChange(locale === 'en' ? 'ru' : 'en');
   };
 
   return (

@@ -1,5 +1,5 @@
 ---
-context_version: 0.2.1
+context_version: 0.3.0
 status: active
 updated: 2026-07-04
 ---
@@ -27,6 +27,8 @@ This Obsidian vault is the primary documentation-context core and memory store f
 
 - [App shell](../src/App.tsx)
 - [Localized start screen](../src/MainScreen.tsx)
+- [Shared UI localization](../src/localization.ts)
+- [Exit confirmation overlay](../src/ConfirmExitOverlay.tsx)
 - [End-state overlays](../src/EndStateOverlay.tsx)
 - [Game state and loop](../src/useGame.ts)
 - [Keyboard action mapping](../src/gameInput.ts)

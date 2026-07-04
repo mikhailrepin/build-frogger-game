@@ -1,5 +1,5 @@
 ---
-context_version: 0.2.1
+context_version: 0.3.0
 status: active
 updated: 2026-07-04
 ---
@@ -10,6 +10,8 @@ updated: 2026-07-04
 
 - React app shell: [App.tsx](../src/App.tsx)
 - Responsive localized start screen: [MainScreen.tsx](../src/MainScreen.tsx)
+- Shared English/Russian UI copy: [localization.ts](../src/localization.ts)
+- Figma-aligned main-screen exit confirmation: [ConfirmExitOverlay.tsx](../src/ConfirmExitOverlay.tsx)
 - Figma-aligned end-state overlays: [EndStateOverlay.tsx](../src/EndStateOverlay.tsx)
 - Gameplay hook and loop: [useGame.ts](../src/useGame.ts)
 - Physical keyboard-to-action mapping: [gameInput.ts](../src/gameInput.ts)
@@ -51,9 +53,10 @@ updated: 2026-07-04
 - Water in [Scene.tsx](../src/Scene.tsx) is rendered as one continuous shader surface per contiguous river section with `#0045A0` coloration; longitudinal current streaks follow each lane's platform direction and blend across lane boundaries, while the lily-pad goal lane uses static water. The general level background is `#072615` and the board plinth material remains separate.
 - The DOM HUD in [App.tsx](../src/App.tsx) uses Figma-exported UI assets from `public/ui`, `Geologica` typography, and liquid-glass panel styling while keeping touch controls visible across pointer classes so mobile devices always have an input path.
 - [MainScreen.tsx](../src/MainScreen.tsx) keeps the background, title art, and frog on separate responsive parallax layers; the game runtime is not mounted until Start Game completes its short fade-to-black transition. English and Russian menu copy share the existing audio mute adapter, while the footer reads the application version from `package.json`.
+- [localization.ts](../src/localization.ts) is the shared source for English and Russian start-screen, gameplay, pause, level-complete, game-over, and exit-confirmation copy. [App.tsx](../src/App.tsx) owns the selected locale so it survives game entry and return to the main screen.
 - [gameInput.ts](../src/gameInput.ts) maps physical `KeyboardEvent.code` values to semantic move, pause, restart, and dev-step actions, keeping controls independent from the active keyboard layout.
 - Gameplay, pause, and game-over keyboard help remains in layout but is rendered at zero opacity on phone-sized portrait and landscape viewports.
-- The Figma-aligned pause dialog in [PauseOverlay.tsx](../src/PauseOverlay.tsx) owns pause-only controls, while [audio.ts](../src/audio.ts) exposes one `0..4` master-volume and mute adapter shared by music and effects. Reaching zero auto-mutes, muting from level one collapses to zero, unmuting at zero restores level one, and any enabled volume adjustment exits button-triggered mute.
+- The Figma-aligned pause dialog in [PauseOverlay.tsx](../src/PauseOverlay.tsx) owns pause-only controls and opens [ConfirmExitOverlay.tsx](../src/ConfirmExitOverlay.tsx) before abandoning the current level for the main screen. [audio.ts](../src/audio.ts) exposes one `0..4` master-volume and mute adapter shared by music and effects. Reaching zero auto-mutes, muting from level one collapses to zero, unmuting at zero restores level one, and any enabled volume adjustment exits button-triggered mute.
 - [EndStateOverlay.tsx](../src/EndStateOverlay.tsx) renders the Figma-aligned level-complete and game-over DOM surfaces; [App.tsx](../src/App.tsx) supplies existing score, bonus, best-score, completed-level, and restart data without moving lifecycle rules into the UI.
 - Active bonus state in [useGame.ts](../src/useGame.ts) is exclusive: every pickup clears all prior effect refs, flags, fly charges, and timeouts before activating the collected bonus. [gameChallenge.ts](../src/gameChallenge.ts) resets the HUD timer on replacement, and [App.tsx](../src/App.tsx) renders one bonus icon plus the remaining seconds.
 - [viewMath.ts](../src/viewMath.ts) is a pure helper and a good template for more visual-fit calculations.

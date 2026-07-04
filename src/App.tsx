@@ -21,6 +21,7 @@ import {
   toggleAudioMuted,
 } from './audio';
 import { version as APP_VERSION } from '../package.json';
+import { UI_COPY, type Locale } from './localization';
 
 type IconComponent = ComponentType<{ className?: string; strokeWidth?: number }>;
 type BonusKind = 'shield' | 'slowTime' | 'currentAnchor' | 'superHop' | 'fly';
@@ -47,15 +48,16 @@ const BONUS_HUD: Record<BonusKind, { Icon?: IconComponent; src?: string; classNa
   fly: { Icon: Bug, className: 'text-lime-200 drop-shadow-[0_0_10px_rgba(190,242,100,0.65)]' },
 };
 
-function ControlButton({ direction, onMove, className = '' }: {
+function ControlButton({ direction, label, onMove, className = '' }: {
   direction: Direction;
+  label: string;
   onMove: (direction: Direction) => void;
   className?: string;
 }) {
   return (
     <button
       type="button"
-      aria-label={`Move ${direction}`}
+      aria-label={label}
       onPointerDown={(event) => {
         event.preventDefault();
         onMove(direction);
@@ -69,17 +71,21 @@ function ControlButton({ direction, onMove, className = '' }: {
 
 interface GameProps {
   audioSettings: ReturnType<typeof getAudioSettings>;
+  locale: Locale;
   reducedMotion: boolean;
   onDecreaseVolume: () => void;
   onIncreaseVolume: () => void;
+  onExitToMainScreen: () => void;
   onToggleMuted: () => void;
 }
 
 function Game({
   audioSettings,
+  locale,
   reducedMotion,
   onDecreaseVolume,
   onIncreaseVolume,
+  onExitToMainScreen,
   onToggleMuted,
 }: GameProps) {
   const {
@@ -140,8 +146,9 @@ function Game({
   const ActiveBonusIcon = activeBonusMeta?.Icon;
   const activeBonusText = activeBonus ? Math.max(0, activeBonus.remainingSeconds) : gameState.lives;
   const overlayVisible = gameState.paused || gameState.gameOver || gameState.gameWon;
+  const copy = UI_COPY[locale].game;
   return (
-    <div className="fixed inset-0 select-none overflow-hidden bg-[#002713]">
+    <div className="fixed inset-0 select-none overflow-hidden bg-[#002713]" lang={locale}>
       <div className={`absolute inset-0 ${shaking && !reducedMotion ? 'animate-shake' : ''}`}>
         <Canvas
           orthographic
@@ -215,11 +222,11 @@ function Game({
 
           <div className="flex shrink-0 items-center justify-end gap-3">
             <span className="whitespace-nowrap text-[18px] font-medium uppercase leading-8 tracking-[1.8px] text-[var(--ui-fg)]">
-              L {gameState.level}
+              {copy.level} {gameState.level}
             </span>
             <button
               type="button"
-              aria-label={gameState.paused ? 'Resume' : 'Pause'}
+              aria-label={gameState.paused ? copy.resume : copy.pause}
               onClick={togglePause}
               className="flex h-12 w-12 items-center justify-center rounded-[18px] text-[var(--ui-fg)] transition active:scale-95"
             >
@@ -239,14 +246,14 @@ function Game({
         className={`ui-font pointer-events-none absolute bottom-0 left-0 right-0 z-20 flex flex-col items-center transition-opacity ${overlayVisible ? 'invisible opacity-0' : 'visible opacity-100'}`}
         style={{ paddingBottom: 'max(14px, env(safe-area-inset-bottom))' }}
       >
-        <ControlButton direction="up" onMove={(direction) => moveFrog(direction, 'touch')} className="mb-2" />
+        <ControlButton direction="up" label={copy.move.up} onMove={(direction) => moveFrog(direction, 'touch')} className="mb-2" />
         <div className="flex gap-2">
-          <ControlButton direction="left" onMove={(direction) => moveFrog(direction, 'touch')} />
-          <ControlButton direction="down" onMove={(direction) => moveFrog(direction, 'touch')} />
-          <ControlButton direction="right" onMove={(direction) => moveFrog(direction, 'touch')} />
+          <ControlButton direction="left" label={copy.move.left} onMove={(direction) => moveFrog(direction, 'touch')} />
+          <ControlButton direction="down" label={copy.move.down} onMove={(direction) => moveFrog(direction, 'touch')} />
+          <ControlButton direction="right" label={copy.move.right} onMove={(direction) => moveFrog(direction, 'touch')} />
         </div>
         <p className="keyboard-help mt-1.5 rounded-lg text-[10px] font-normal leading-4 text-white [text-shadow:0_2px_2.8px_black]">
-          Arrow Keys / WASD&nbsp;&nbsp;•&nbsp;&nbsp;P Pause
+          {copy.keyboardHelp}
         </p>
       </div>
 
@@ -270,6 +277,7 @@ function Game({
 
       {gameState.gameOver && (
         <GameOverOverlay
+          locale={locale}
           score={gameState.score}
           bestScore={gameState.highScore}
           onPlayAgain={() => restartGame()}
@@ -278,6 +286,7 @@ function Game({
 
       {gameState.gameWon && (
         <LevelCompleteOverlay
+          locale={locale}
           level={Math.max(1, gameState.level - 1)}
           score={gameState.score}
           bonus={challengeBonus}
@@ -286,11 +295,13 @@ function Game({
 
       {gameState.paused && !gameState.gameOver && !gameState.gameWon && (
         <PauseOverlay
+          locale={locale}
           score={gameState.score}
           volumeLevel={audioSettings.volumeLevel}
           muted={audioSettings.muted}
           onDecreaseVolume={onDecreaseVolume}
           onIncreaseVolume={onIncreaseVolume}
+          onExitToMainScreen={onExitToMainScreen}
           onToggleMute={onToggleMuted}
           onResume={togglePause}
         />
@@ -311,6 +322,7 @@ type AppPhase = 'menu' | 'leaving-menu' | 'playing';
 
 export default function App() {
   const [phase, setPhase] = useState<AppPhase>('menu');
+  const [locale, setLocale] = useState<Locale>('en');
   const [audioSettings, setAudioSettings] = useState(getAudioSettings);
   const [reducedMotion, setReducedMotion] = useState(() => (
     typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
@@ -361,9 +373,11 @@ export default function App() {
   if (phase !== 'playing') {
     return (
       <MainScreen
+        locale={locale}
         muted={audioSettings.muted}
         transitioning={phase === 'leaving-menu'}
         version={APP_VERSION}
+        onLocaleChange={setLocale}
         onStart={startGame}
         onToggleMuted={toggleMuted}
       />
@@ -373,9 +387,11 @@ export default function App() {
   return (
     <Game
       audioSettings={audioSettings}
+      locale={locale}
       reducedMotion={reducedMotion}
       onDecreaseVolume={decreaseVolume}
       onIncreaseVolume={increaseVolume}
+      onExitToMainScreen={() => setPhase('menu')}
       onToggleMuted={toggleMuted}
     />
   );

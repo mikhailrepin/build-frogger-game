@@ -1,10 +1,37 @@
 ---
-context_version: 0.2.1
+context_version: 0.3.0
 status: active
 updated: 2026-07-04
 ---
 
 # Context Changelog
+
+## 1.32.0 - 2026-07-04
+
+Changed files and notes:
+
+- [localization.ts](../src/localization.ts)
+- [localization.test.ts](../src/localization.test.ts)
+- [MainScreen.tsx](../src/MainScreen.tsx)
+- [App.tsx](../src/App.tsx)
+- [PauseOverlay.tsx](../src/PauseOverlay.tsx)
+- [ConfirmExitOverlay.tsx](../src/ConfirmExitOverlay.tsx)
+- [EndStateOverlay.tsx](../src/EndStateOverlay.tsx)
+- [Context index](00%20Context%20Index.md)
+- [Architecture Map](Architecture%20Map.md)
+- [Implementation Notes](Implementation%20Notes.md)
+- [Project audit](PROJECT.mdc)
+
+Reason:
+
+- The language selected on the start screen needed to apply to gameplay, pause, victory, defeat, and exit confirmation.
+- Main Screen in pause needed a real confirmation step matching HMI Studio node `98:995`.
+
+Implementation impact:
+
+- [App.tsx](../src/App.tsx) owns the locale and passes shared copy from [localization.ts](../src/localization.ts) through all DOM UI states.
+- Main Screen opens a localized alert dialog; Resume returns to gameplay, while Exit to Menu unmounts the current game session and returns to the localized start screen.
+- Localization tests keep English and Russian copy structurally aligned.
 
 ## 1.31.0 - 2026-07-04
 

@@ -48,6 +48,12 @@
   opacity: 0.7;
 }
 
+.ui-button--compact-copy {
+  font-size: 16px;
+  letter-spacing: 1.4px;
+  white-space: nowrap;
+}
+
 @media (max-width: 767px) and (max-height: 1024px),
        (max-width: 1024px) and (max-height: 767px) {
   .keyboard-help {

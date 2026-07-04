@@ -1,5 +1,5 @@
 ---
-context_version: 0.2.1
+context_version: 0.3.0
 status: active
 updated: 2026-07-04
 ---
@@ -23,6 +23,8 @@ When documentation mentions implementation details, include links to the relevan
 - Rendering: [Scene.tsx](../src/Scene.tsx)
 - UI shell: [App.tsx](../src/App.tsx)
 - Start screen: [MainScreen.tsx](../src/MainScreen.tsx)
+- UI localization: [localization.ts](../src/localization.ts)
+- Exit confirmation: [ConfirmExitOverlay.tsx](../src/ConfirmExitOverlay.tsx)
 - Level constants: [gameConstants.ts](../src/gameConstants.ts)
 - Viewport fitting math: [viewMath.ts](../src/viewMath.ts)
 - Gameplay metrics: [gameMetrics.ts](../src/gameMetrics.ts)
