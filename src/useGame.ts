@@ -10,7 +10,6 @@ import {
   type LaneConfig,
 } from './gameConstants';
 import {
-  advanceLaneItems,
   buildLaneItems,
   buildBonusItems,
   checkCollision,
@@ -30,9 +29,7 @@ import {
   isRiverLane,
   isRoadLane,
   parseDevFlags,
-  resolveGoalHit,
   ROW_PROGRESS_SCORE,
-  GOAL_SCORE,
   BONUS_SCORE,
   FLY_BONUS_SCORE,
   SHIELD_DURATION_MS,
@@ -50,11 +47,11 @@ import {
 import {
   activateFlyCombo as activateFlyComboSession,
   clearFlyCombo as clearFlyComboSession,
-  computeLevelClearScore,
   createChallengeSession,
   registerLevelDeath,
   replaceActiveTimedBonus,
   resetChallengeSession,
+  resolveGoalLanding,
   scoreWithFlyCombo,
   type ActiveTimedBonus,
   type ChallengeSession,
@@ -88,6 +85,7 @@ import {
   stopMusic,
 } from './audio';
 import { getKeyboardGameAction } from './gameInput';
+import { advanceLaneItemsInPlace } from './gameRuntime';
 
 type ActiveBonusHud = {
   kind: BonusItem['kind'];
@@ -154,6 +152,7 @@ export function useGame({ suspended = false }: UseGameOptions = {}) {
   const firstMoveRecordedRef = useRef(false);
   const gameOverSoundPlayedRef = useRef(false);
   const levelCompleteSoundPlayedRef = useRef(false);
+  const goalLandingLockRef = useRef(false);
   const gameStateRef = useRef(gameState);
   const laneItemsRef = useRef(laneItems);
   const bonusItemsRef = useRef(bonusItems);
@@ -220,6 +219,7 @@ export function useGame({ suspended = false }: UseGameOptions = {}) {
   }, []);
 
   const resetFrog = useCallback((rows: number) => {
+    goalLandingLockRef.current = false;
     platformRideRef.current = null;
     frogRef.current = createInitialFrog(rows);
     setDeathAnimation(false);
@@ -432,13 +432,17 @@ export function useGame({ suspended = false }: UseGameOptions = {}) {
     recordGameEvent('level_complete', { level: gameState.level });
   }, [gameState.gameWon, gameState.level]);
 
+  const featuredBonusExpiresAt = featuredBonus?.expiresAt ?? null;
   useEffect(() => {
+    if (featuredBonusExpiresAt === null) return;
+
+    setHudClockNow(Date.now());
     const timer = window.setInterval(() => {
       setHudClockNow(Date.now());
     }, 1000);
 
     return () => window.clearInterval(timer);
-  }, []);
+  }, [featuredBonusExpiresAt]);
 
   useEffect(() => {
     if (!musicStarted) {
@@ -525,6 +529,7 @@ export function useGame({ suspended = false }: UseGameOptions = {}) {
     laneConfigsRef.current = nextLevelData.lanes;
     rowsRef.current = nextLevelData.rows;
     maxRowRef.current = 0;
+    goalLandingLockRef.current = false;
     setChallengeBonus(0);
     resetLevelClock();
 
@@ -752,7 +757,7 @@ export function useGame({ suspended = false }: UseGameOptions = {}) {
       const flags = devFlagsRef.current;
       const speedMul = (1 + (gs.level - 1) * 0.12) * flags.speedScale * (slowTimeActiveRef.current ? SLOW_TIME_FACTOR : 1);
 
-      laneItemsRef.current = advanceLaneItems(laneItemsRef.current, lanes, speedMul);
+      advanceLaneItemsInPlace(laneItemsRef.current, lanes, speedMul);
 
       let activeFrog = f;
       if (f.isHopping) {
@@ -858,28 +863,36 @@ export function useGame({ suspended = false }: UseGameOptions = {}) {
               ? gameStateRef.current.goalsReached.findIndex((value) => !value)
               : isGoalColumn(activeFrog.pos.x);
 
-            if (goalIdx !== -1 && !gs.goalsReached[goalIdx]) {
+            if (goalIdx !== -1 && !gs.goalsReached[goalIdx] && !goalLandingLockRef.current) {
+              goalLandingLockRef.current = true;
               maxRowRef.current = 0;
               playGoalReached();
               recordGameEvent('goal', { goalIdx, level: gs.level });
-              const goalScore = scoreWithFlyCombo(challengeSessionRef.current, GOAL_SCORE);
-              challengeSessionRef.current = goalScore.session;
-              if (goalScore.session.flyComboCharges <= 0 && goalScore.result.consumed) {
+              const landing = resolveGoalLanding(
+                gameStateRef.current,
+                challengeSessionRef.current,
+                goalIdx,
+                flags.forceLevelComplete,
+                Date.now(),
+              );
+              challengeSessionRef.current = landing.session;
+              if (landing.session.flyComboCharges <= 0 && landing.goalScore.consumed) {
                 clearFlyCombo();
               }
-              const clearBonus = computeLevelClearScore(challengeSessionRef.current, Date.now());
-              setChallengeBonus(clearBonus.score);
+              setChallengeBonus(landing.clearBonus.score);
+              gameStateRef.current = landing.state;
+              setGameState(landing.state);
 
-              setGameState((prev) => (
-                resolveGoalHit(
-                  prev,
-                  goalIdx,
-                  flags.forceLevelComplete,
-                  goalScore.result.score + clearBonus.score,
-                ).state
-              ));
-
-              resetFrog(rows);
+              if (landing.allDone) {
+                platformRideRef.current = null;
+                frogRef.current = {
+                  ...frogRef.current,
+                  isHopping: false,
+                  riding: false,
+                };
+              } else {
+                resetFrog(rows);
+              }
             } else if (!flags.forceGoal) {
               handleDeath(false);
             }
@@ -897,28 +910,31 @@ export function useGame({ suspended = false }: UseGameOptions = {}) {
   useEffect(() => {
     if (!gameState.gameWon) return;
 
-      levelTimeoutRef.current = window.setTimeout(() => {
-        levelTimeoutRef.current = null;
-        const nextLevel = gameState.level;
-        const nextLevelData = generateLevel(nextLevel);
+    levelTimeoutRef.current = window.setTimeout(() => {
+      levelTimeoutRef.current = null;
+      const nextLevel = gameState.level;
+      const nextLevelData = generateLevel(nextLevel);
 
       setLevelData(nextLevelData);
       laneConfigsRef.current = nextLevelData.lanes;
       rowsRef.current = nextLevelData.rows;
       maxRowRef.current = 0;
-        setChallengeBonus(0);
-        setGameState((prev) => ({
-          ...createPostWinState(prev, nextLevel),
-          paused: devFlagsRef.current.stepSimulation || prev.paused,
-        }));
-        frogRef.current = createInitialFrog(nextLevelData.rows);
-        platformRideRef.current = null;
-        setDeathAnimation(false);
-        setShowSplash(false);
-        rebuildLaneItems(nextLevelData.lanes, nextLevelData.rows);
-        rebuildBonusItems(nextLevel, nextLevelData.lanes, nextLevelData.rows);
-        clearActiveBonuses();
-      }, 2000);
+      goalLandingLockRef.current = false;
+      setChallengeBonus(0);
+      const nextGameState = {
+        ...createPostWinState(gameStateRef.current, nextLevel),
+        paused: devFlagsRef.current.stepSimulation || gameStateRef.current.paused,
+      };
+      gameStateRef.current = nextGameState;
+      setGameState(nextGameState);
+      frogRef.current = createInitialFrog(nextLevelData.rows);
+      platformRideRef.current = null;
+      setDeathAnimation(false);
+      setShowSplash(false);
+      rebuildLaneItems(nextLevelData.lanes, nextLevelData.rows);
+      rebuildBonusItems(nextLevel, nextLevelData.lanes, nextLevelData.rows);
+      clearActiveBonuses();
+    }, 2000);
 
     return () => {
       if (levelTimeoutRef.current !== null) {
@@ -937,7 +953,6 @@ export function useGame({ suspended = false }: UseGameOptions = {}) {
     };
   }, [clearPendingTimers]);
 
-  const levelElapsedSeconds = Math.max(0, Math.floor((hudClockNow - challengeSessionRef.current.levelStartedAt) / 1000));
   const featuredBonusRemainingMs = featuredBonus ? Math.max(0, featuredBonus.expiresAt - hudClockNow) : 0;
   const activeBonus: ActiveBonusHud | null = featuredBonus && featuredBonusRemainingMs > 0
     ? {
@@ -960,7 +975,6 @@ export function useGame({ suspended = false }: UseGameOptions = {}) {
     flyComboActive,
     activeBonus,
     challengeBonus,
-    levelElapsedSeconds,
     deathAnimation,
     showSplash,
     moveFrog,

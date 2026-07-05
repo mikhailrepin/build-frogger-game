@@ -237,6 +237,13 @@ body { background: #002713; }
   pointer-events: none;
 }
 
+.start-screen__background picture,
+.start-screen__frog picture {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
 .start-screen__logo {
   position: absolute;
   z-index: -1;

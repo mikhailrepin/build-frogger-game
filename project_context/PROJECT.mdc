@@ -65,6 +65,9 @@ Result: production build succeeds.
 - Phone-sized landscape viewports now show a localized animated rotate-device gate across every app phase; active gameplay simulation and input are suspended until portrait orientation returns without altering the user's pause state.
 - Production builds now ship an installable portrait PWA manifest and a generated, content-versioned service worker that precaches the complete game for offline menu and gameplay startup.
 - Browser favicon metadata now references the supplied `public/favicon.ico` through an explicit cache-busted ICO URL, while launcher and Apple Touch icons use dedicated PNG artwork.
+- The main-screen background now uses responsive AVIF with JPEG fallback and explicit preload; frog artwork uses AVIF with a transparent PNG compatibility fallback.
+- Goal landing now commits atomically to runtime and React state, rejects duplicates, resets immediately after intermediate goals, and exposes the victory overlay immediately after the final goal.
+- The animation loop now mutates lane positions without per-frame object allocation; memoized scene props, conditional HUD ticks, demand-mode overlay rendering, and a stable point-light count reduce GC and GPU stalls.
 - Level-complete and game-over overlays now match their HMI Studio layouts, use the shared Geologica/liquid-glass UI language, remain adapters around the existing score, bonus, high-score, level-transition, and restart state, and render in the locale selected on the start screen.
 - Camera framing now keeps the baseline orthographic zoom stable and follows the player with a lower-screen reserve for controls.
 - Primary HUD indicators and controls now use local Figma-exported UI assets with lucide fallback icons for non-Figma bonus types instead of emoji glyphs or one-off inline SVG controls.
@@ -100,7 +103,7 @@ Result: production build succeeds.
 Risk level: high for longer sessions and higher levels.
 
 - `useGame` runs the core game loop through `requestAnimationFrame`, but high-frequency entity motion now stays in refs. React state is reserved for coarse UI and lifecycle changes.
-- Lane item updates still allocate new arrays and new item objects when the runtime snapshot advances. This is bounded compared with the earlier per-frame React state path, but it remains a GC source.
+- Lane item movement now preserves the existing arrays and objects and mutates only runtime `x` coordinates, removing the animation loop's main recurring GC source.
 - Water animation mutates a subdivided plane every R3F frame. The vertex count is moderate, but it should remain bounded and should be measured once level size and device targets are finalized.
 - The 3D scene is entirely procedural and creates many separate meshes for grass, vehicles, frog parts, pads, particles, flowers, and lights. This is acceptable for a prototype but will not scale well without instancing, mesh reuse, or geometry/material pooling.
 - The build emits a single inlined HTML payload of about 1.14 MB before gzip. This is acceptable for a small game, but asset growth should be monitored because `vite-plugin-singlefile` removes normal chunking benefits.

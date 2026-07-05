@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ComponentType } from 'react';
-import { Canvas } from '@react-three/fiber';
+import { Canvas, type RootState } from '@react-three/fiber';
 import {
   Anchor,
   Bug,
@@ -44,6 +44,26 @@ const UI_ASSETS = {
     right: '/ui/btn-right.svg',
   } satisfies Record<Direction, string>,
 };
+
+const GAME_CAMERA = {
+  near: -100,
+  far: 100,
+  position: [6, 8, 6] as [number, number, number],
+  zoom: 55,
+};
+const GAME_DPR: [number, number] = [1, 2];
+const GAME_GL = {
+  antialias: true,
+  alpha: false,
+  powerPreference: 'high-performance' as const,
+  localClippingEnabled: true,
+};
+
+function configureGameCanvas({ camera, gl }: RootState) {
+  camera.lookAt(0, 0, 0);
+  camera.updateProjectionMatrix();
+  gl.setClearColor(new THREE.Color('#002713'));
+}
 
 const BONUS_HUD: Record<BonusKind, { Icon?: IconComponent; src?: string; className: string }> = {
   shield: { src: UI_ASSETS.shield, className: 'drop-shadow-[0_0_10px_rgba(255,159,0,0.65)]' },
@@ -153,35 +173,23 @@ function Game({
   const ActiveBonusIcon = activeBonusMeta?.Icon;
   const activeBonusText = activeBonus ? Math.max(0, activeBonus.remainingSeconds) : gameState.lives;
   const overlayVisible = gameState.paused || gameState.gameOver || gameState.gameWon;
+  const renderPaused = overlayVisible || suspended;
   const copy = UI_COPY[locale].game;
   return (
     <div className="fixed inset-0 select-none overflow-hidden bg-[#002713]" lang={locale}>
       <div className={`absolute inset-0 ${shaking && !reducedMotion ? 'animate-shake' : ''}`}>
         <Canvas
           orthographic
-          camera={{
-            near: -100,
-            far: 100,
-            position: [6, 8, 6],
-            zoom: 55,
-          }}
+          camera={GAME_CAMERA}
+          frameloop={renderPaused ? 'demand' : 'always'}
           shadows="percentage"
-          dpr={[1, 2]}
-          gl={{
-            antialias: true,
-            alpha: false,
-            powerPreference: 'high-performance',
-            localClippingEnabled: true,
-          }}
-          onCreated={({ camera, gl }) => {
-            camera.lookAt(0, 0, 0);
-            camera.updateProjectionMatrix();
-            gl.setClearColor(new THREE.Color('#002713'));
-          }}
+          dpr={GAME_DPR}
+          gl={GAME_GL}
+          onCreated={configureGameCanvas}
         >
           <GameScene
             frogRef={frogRef}
-            gameState={gameState}
+            goalsReached={gameState.goalsReached}
             laneItems={laneItems}
             laneItemsRef={laneItemsRef}
             levelModifiers={levelModifiers}

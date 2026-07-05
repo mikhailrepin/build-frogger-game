@@ -1,10 +1,40 @@
 ---
-context_version: 0.6.0
+context_version: 0.7.0
 status: active
 updated: 2026-07-05
 ---
 
 # Context Changelog
+
+## 1.38.0 - 2026-07-05
+
+Changed files and notes:
+
+- [MainScreen.tsx](../src/MainScreen.tsx)
+- [Responsive main-screen assets](../public/main-screen)
+- [HTML entry point](../index.html)
+- [useGame.ts](../src/useGame.ts)
+- [gameChallenge.ts](../src/gameChallenge.ts)
+- [gameRuntime.ts](../src/gameRuntime.ts)
+- [Scene.tsx](../src/Scene.tsx)
+- [App.tsx](../src/App.tsx)
+- [Context index](00%20Context%20Index.md)
+- [Architecture Map](Architecture%20Map.md)
+- [Implementation Notes](Implementation%20Notes.md)
+- [Project audit](PROJECT.mdc)
+
+Reason:
+
+- First-load PNG transfer and decode delayed the main screen.
+- Goal landing could leave a stale runtime state for one frame, awarded level-clear bonuses before the final goal, and changed the scene light count when a lily pad was filled.
+- Per-frame lane object allocation, full-scene reconciliation, and unconditional HUD ticks created GC and render pressure that appeared as intermittent FPS drops.
+
+Implementation impact:
+
+- Responsive AVIF/JPEG background variants reduce the primary image from 2.16 MB to 60–139 KB on AVIF-capable clients; frog artwork drops from 453 KB to about 50 KB.
+- Goal landing is atomic and duplicate guarded. Intermediate goals reset immediately, while the final goal commits the victory state immediately and alone receives clear bonuses.
+- Runtime lane movement preserves array and object identity, the R3F scene skips HUD-only renders, overlay-covered canvases render on demand, and filled goals no longer add point lights.
+- Asset budgets, goal outcomes, duplicate landing rejection, and runtime identity preservation are unit-tested.
 
 ## 1.37.0 - 2026-07-05
 

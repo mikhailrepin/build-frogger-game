@@ -7,8 +7,10 @@ import {
   registerLevelDeath,
   replaceActiveTimedBonus,
   resetChallengeSession,
+  resolveGoalLanding,
   scoreWithFlyCombo,
 } from './gameChallenge';
+import { createInitialGameState } from './gameCore';
 
 describe('game challenge', () => {
   it('tracks level deaths and combo charges', () => {
@@ -48,5 +50,46 @@ describe('game challenge', () => {
       kind: 'slowTime',
       expiresAt: 12_000,
     });
+  });
+
+  it('resolves regular and final goal landings atomically', () => {
+    const session = resetChallengeSession(1_000);
+    const initial = createInitialGameState();
+    const regular = resolveGoalLanding(initial, session, 0, false, 2_000);
+
+    expect(regular.accepted).toBe(true);
+    expect(regular.allDone).toBe(false);
+    expect(regular.clearBonus.score).toBe(0);
+    expect(regular.state.gameWon).toBe(false);
+    expect(regular.state.level).toBe(1);
+    expect(regular.state.goalsReached[0]).toBe(true);
+
+    const almostComplete = {
+      ...regular.state,
+      goalsReached: [true, true, true, true, false],
+    };
+    const final = resolveGoalLanding(almostComplete, regular.session, 4, false, 2_500);
+
+    expect(final.accepted).toBe(true);
+    expect(final.allDone).toBe(true);
+    expect(final.clearBonus.score).toBeGreaterThan(0);
+    expect(final.state.gameWon).toBe(true);
+    expect(final.state.level).toBe(2);
+  });
+
+  it('ignores repeated goal landings without scoring twice', () => {
+    const session = activateFlyCombo(resetChallengeSession(1_000));
+    const state = {
+      ...createInitialGameState(),
+      goalsReached: [true, false, false, false, false],
+      score: 50,
+    };
+    const repeated = resolveGoalLanding(state, session, 0, false, 2_000);
+
+    expect(repeated.accepted).toBe(false);
+    expect(repeated.state).toBe(state);
+    expect(repeated.session).toBe(session);
+    expect(repeated.goalScore.score).toBe(0);
+    expect(repeated.clearBonus.score).toBe(0);
   });
 });

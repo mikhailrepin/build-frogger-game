@@ -1,5 +1,5 @@
 ---
-context_version: 0.6.0
+context_version: 0.7.0
 status: active
 updated: 2026-07-05
 ---
@@ -38,6 +38,7 @@ This Obsidian vault is the primary documentation-context core and memory store f
 - [Game state and loop](../src/useGame.ts)
 - [Keyboard action mapping](../src/gameInput.ts)
 - [Pure gameplay core](../src/gameCore.ts)
+- [Allocation-free runtime movement](../src/gameRuntime.ts)
 - [R3F scene](../src/Scene.tsx)
 - [Game constants and levels](../src/gameConstants.ts)
 - [Viewport fitting math](../src/viewMath.ts)

@@ -1,5 +1,5 @@
 ---
-context_version: 0.6.0
+context_version: 0.7.0
 status: active
 updated: 2026-07-05
 ---
@@ -19,6 +19,7 @@ When documentation mentions implementation details, include links to the relevan
 
 - Gameplay state: [useGame.ts](../src/useGame.ts)
 - Pure gameplay core: [gameCore.ts](../src/gameCore.ts)
+- Allocation-free runtime movement: [gameRuntime.ts](../src/gameRuntime.ts)
 - Storage adapter: [highScoreStorage.ts](../src/highScoreStorage.ts)
 - Rendering: [Scene.tsx](../src/Scene.tsx)
 - UI shell: [App.tsx](../src/App.tsx)
@@ -54,6 +55,8 @@ When documentation mentions implementation details, include links to the relevan
 - Keep metrics adapters and metrics storage separate from the core gameplay loop.
 - Validate PWA work against the production preview: development mode intentionally does not register the service worker.
 - Keep every new production asset covered by the generated precache instead of maintaining a manual asset list.
+- Keep immutable transition rules in [gameCore.ts](../src/gameCore.ts) and deliberate hot-path mutation isolated in [gameRuntime.ts](../src/gameRuntime.ts).
+- Do not add goal-dependent lights: changing the light count forces Three.js material programs to recompile during play.
 
 ## Version-Control Discipline
 

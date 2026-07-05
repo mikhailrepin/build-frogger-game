@@ -2,8 +2,16 @@ import { useEffect, useRef } from 'react';
 import { UI_COPY, type Locale } from './localization';
 
 const MAIN_SCREEN_ASSETS = {
-  background: '/main-screen/background.png',
-  frog: '/main-screen/frog.png',
+  background: {
+    avif: '/main-screen/background-1448.avif',
+    avifSrcSet: '/main-screen/background-768.avif 768w, /main-screen/background-1448.avif 1448w',
+    jpeg: '/main-screen/background-1448.jpg',
+    jpegSrcSet: '/main-screen/background-768.jpg 768w, /main-screen/background-1448.jpg 1448w',
+  },
+  frog: {
+    avif: '/main-screen/frog.avif',
+    fallback: '/main-screen/frog.png',
+  },
   logo: '/main-screen/text.png',
   flags: {
     en: '/main-screen/usa-flag.png',
@@ -96,12 +104,25 @@ export function MainScreen({
       lang={locale}
     >
       <div className="start-screen__background" aria-hidden="true">
-        <img
-          src={MAIN_SCREEN_ASSETS.background}
-          alt=""
-          draggable={false}
-          fetchPriority="high"
-        />
+        <picture>
+          <source
+            type="image/avif"
+            srcSet={MAIN_SCREEN_ASSETS.background.avifSrcSet}
+            sizes="100vw"
+          />
+          <source
+            type="image/jpeg"
+            srcSet={MAIN_SCREEN_ASSETS.background.jpegSrcSet}
+            sizes="100vw"
+          />
+          <img
+            src={MAIN_SCREEN_ASSETS.background.jpeg}
+            alt=""
+            draggable={false}
+            decoding="async"
+            fetchPriority="high"
+          />
+        </picture>
       </div>
 
       <div className="start-screen__logo">
@@ -114,12 +135,15 @@ export function MainScreen({
       </div>
 
       <div className="start-screen__frog" aria-hidden="true">
-        <img
-          src={MAIN_SCREEN_ASSETS.frog}
-          alt=""
-          draggable={false}
-          fetchPriority="high"
-        />
+        <picture>
+          <source type="image/avif" srcSet={MAIN_SCREEN_ASSETS.frog.avif} />
+          <img
+            src={MAIN_SCREEN_ASSETS.frog.fallback}
+            alt=""
+            draggable={false}
+            decoding="async"
+          />
+        </picture>
       </div>
 
       <div className="start-screen__menu">

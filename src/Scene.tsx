@@ -1,4 +1,4 @@
-import { useRef, useMemo, useEffect, createContext, useContext } from 'react';
+import { memo, useRef, useMemo, useEffect, createContext, useContext } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import {
@@ -846,14 +846,13 @@ function Flower3D({ reducedMotion }: { reducedMotion: boolean }) {
 function MiniFrog3D() {
   return (
     <group position={[0, 0.06, 0]}>
-      <mesh castShadow><sphereGeometry args={[0.14, 10, 8]} /><meshStandardMaterial color="#43a047" roughness={0.5} /></mesh>
+      <mesh castShadow><sphereGeometry args={[0.14, 10, 8]} /><meshStandardMaterial color="#43a047" emissive="#1b5e20" emissiveIntensity={0.2} roughness={0.5} /></mesh>
       {[-1, 1].map(s => (
         <group key={s}>
           <mesh position={[s * 0.07, 0.1, -0.08]}><sphereGeometry args={[0.04, 8, 6]} /><meshStandardMaterial color="white" /></mesh>
           <mesh position={[s * 0.07, 0.11, -0.11]}><sphereGeometry args={[0.025, 6, 6]} /><meshStandardMaterial color="#1b5e20" /></mesh>
         </group>
       ))}
-      <pointLight color="#66bb6a" intensity={0.3} distance={1} />
     </group>
   );
 }
@@ -951,9 +950,9 @@ function DeathParticles({ frogRef, isSplash, totalRows, reducedMotion }: { frogR
 }
 
 /* ═══════════════ SCENE EXPORT ═══════════════ */
-export function GameScene({ frogRef, gameState, laneItems, laneItemsRef, levelModifiers = [], bonusItems, shieldActive, slowTimeActive, currentAnchorActive, superHopActive, deathAnimation, showSplash, laneConfigs, totalRows, showCollisionBoxes = false, reducedMotion = false }: {
+export const GameScene = memo(function GameScene({ frogRef, goalsReached, laneItems, laneItemsRef, levelModifiers = [], bonusItems, shieldActive, slowTimeActive, currentAnchorActive, superHopActive, deathAnimation, showSplash, laneConfigs, totalRows, showCollisionBoxes = false, reducedMotion = false }: {
   frogRef: React.MutableRefObject<FrogState>;
-  gameState: { goalsReached: boolean[] };
+  goalsReached: boolean[];
   laneItems: GameObject[][];
   laneItemsRef: React.MutableRefObject<GameObject[][]>;
   levelModifiers?: LevelModifier[];
@@ -1006,7 +1005,7 @@ export function GameScene({ frogRef, gameState, laneItems, laneItemsRef, levelMo
 
       {/* Lily pads */}
       {goalRow >= 0 && LILY_PAD_POSITIONS.map((col, i) => (
-        <LilyPad3D key={i} col={col} gy={goalRow} reached={gameState.goalsReached[i]} totalRows={totalRows} showCollisionBoxes={showCollisionBoxes} reducedMotion={reducedMotion} />
+        <LilyPad3D key={i} col={col} gy={goalRow} reached={goalsReached[i]} totalRows={totalRows} showCollisionBoxes={showCollisionBoxes} reducedMotion={reducedMotion} />
       ))}
 
       {/* Lane items */}
@@ -1036,4 +1035,4 @@ export function GameScene({ frogRef, gameState, laneItems, laneItemsRef, levelMo
       )}
     </ClipContext.Provider>
   );
-}
+});

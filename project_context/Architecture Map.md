@@ -1,5 +1,5 @@
 ---
-context_version: 0.6.0
+context_version: 0.7.0
 status: active
 updated: 2026-07-05
 ---
@@ -21,6 +21,7 @@ updated: 2026-07-05
 - Gameplay hook and loop: [useGame.ts](../src/useGame.ts)
 - Physical keyboard-to-action mapping: [gameInput.ts](../src/gameInput.ts)
 - Pure gameplay core and transition helpers: [gameCore.ts](../src/gameCore.ts)
+- Allocation-free lane runtime updates: [gameRuntime.ts](../src/gameRuntime.ts)
 - 3D scene and visual components: [Scene.tsx](../src/Scene.tsx)
 - Constants and procedural level generation: [gameConstants.ts](../src/gameConstants.ts)
 - Viewport fitting math: [viewMath.ts](../src/viewMath.ts)
@@ -38,7 +39,7 @@ updated: 2026-07-05
 ## Current Flow
 
 1. [App.tsx](../src/App.tsx) first mounts the localized [MainScreen.tsx](../src/MainScreen.tsx), then mounts the full-screen canvas and DOM HUD after the start transition.
-2. [useGame.ts](../src/useGame.ts) owns game state, input handling, the animation loop, collision checks, scoring, lives, level transitions, and audio triggers, while delegating pure rules to [gameCore.ts](../src/gameCore.ts) and persistence to [highScoreStorage.ts](../src/highScoreStorage.ts).
+2. [useGame.ts](../src/useGame.ts) owns game state, input handling, the animation loop, collision checks, scoring, lives, level transitions, and audio triggers, while delegating pure rules to [gameCore.ts](../src/gameCore.ts), allocation-free per-frame lane movement to [gameRuntime.ts](../src/gameRuntime.ts), and persistence to [highScoreStorage.ts](../src/highScoreStorage.ts).
 3. [Scene.tsx](../src/Scene.tsx) renders the playfield, frog, obstacles, platforms, water, particles, and lighting. Its pickups and [BonusGuideOverlay.tsx](../src/BonusGuideOverlay.tsx) both render [BonusModel3D.tsx](../src/BonusModel3D.tsx), so the guide cannot drift to separate bonus artwork.
 4. [gameConstants.ts](../src/gameConstants.ts) defines grid constants, lane types, lily pad positions, and deterministic level generation.
 5. [viewMath.ts](../src/viewMath.ts) computes orthographic fit values from viewport and world bounds.
@@ -54,18 +55,20 @@ updated: 2026-07-05
 - The most important architecture debt is that [useGame.ts](../src/useGame.ts) mixes simulation, input, timers, audio side effects, and React state updates.
 - The renderer is already componentized, and a larger part of the gameplay rules are now isolated in [gameCore.ts](../src/gameCore.ts).
 - The canvas renderer configuration in [App.tsx](../src/App.tsx) should keep an explicit shadow-map mode instead of the boolean `shadows` default, because the current React Three Fiber default still maps to Three.js `PCFSoftShadowMap`, which is deprecated.
-- High-frequency frog and lane motion now stay in refs, while React state is limited to coarse UI and lifecycle updates.
+- High-frequency frog and lane motion now stay in refs. [gameRuntime.ts](../src/gameRuntime.ts) mutates only runtime `x` coordinates in place, so the animation loop does not allocate replacement rows and item objects every frame; React state remains limited to coarse UI and lifecycle updates.
 - Runtime lane positions in [useGame.ts](../src/useGame.ts) must only be seeded from React state when level data is rebuilt; syncing the mutable lane ref from state on every render rewinds obstacle and platform motion during unrelated HUD updates.
 - River landings in [useGame.ts](../src/useGame.ts) atomically acquire a stable `row + itemIndex` platform lock in the landing tick; [gameCore.ts](../src/gameCore.ts) uses a dedicated support tolerance, and subsequent carrying does not depend on repeating AABB overlap every frame.
 - Camera framing for the playfield should keep the desktop orthographic zoom stable across level lengths and use damped X/Z follow offsets. Phone-sized viewports automatically switch to a row-aligned camera with a board width spanning `1.5` viewport widths and direction-aware framing; mobile X/Z movement is constrained by projected board edges so look-ahead cannot expose unnecessary empty space outside the level.
 - Road markings in [Scene.tsx](../src/Scene.tsx) use a dedicated Y offset and non-writing depth material to avoid z-fighting shimmer during camera movement.
 - Water in [Scene.tsx](../src/Scene.tsx) is rendered as one continuous shader surface per contiguous river section with `#0045A0` coloration; longitudinal current streaks follow each lane's platform direction and blend across lane boundaries, while the lily-pad goal lane uses static water. The general level background is `#072615` and the board plinth material remains separate.
 - The DOM HUD in [App.tsx](../src/App.tsx) uses Figma-exported UI assets from `public/ui`, `Geologica` typography, and liquid-glass panel styling while keeping touch controls visible across pointer classes so mobile devices always have an input path.
-- [MainScreen.tsx](../src/MainScreen.tsx) keeps the background, title art, and frog on separate responsive parallax layers; the game runtime is not mounted until Start Game completes its short fade-to-black transition. The looping `public/sounds/main-menu.mp3` track stays active across the `menu` and `menu-guide` phases, shares mute and volume settings with gameplay audio through [audio.ts](../src/audio.ts), and retries playback after the first user gesture when browser autoplay policy blocks the initial attempt. The footer reads the application version from `package.json`.
+- [MainScreen.tsx](../src/MainScreen.tsx) keeps the background, title art, and frog on separate responsive parallax layers; the background uses responsive AVIF with JPEG fallback, the frog uses AVIF with a transparent PNG compatibility fallback, and the selected AVIF background is preloaded before React starts. The game runtime is not mounted until Start Game completes its short fade-to-black transition. The looping `public/sounds/main-menu.mp3` track stays active across the `menu` and `menu-guide` phases, shares mute and volume settings with gameplay audio through [audio.ts](../src/audio.ts), and retries playback after the first user gesture when browser autoplay policy blocks the initial attempt. The footer reads the application version from `package.json`.
 - [OrientationGate.tsx](../src/OrientationGate.tsx) covers every app phase on phone-sized landscape viewports, tracks window, orientation, and visual viewport changes, and uses [orientationPolicy.ts](../src/orientationPolicy.ts) for the same phone bounds as the mobile camera. While visible, [useGame.ts](../src/useGame.ts) holds the simulation and rejects gameplay input through a separate suspension flag without changing the player's pause state; menu audio continues under the shared mute and volume settings.
 - [manifest.webmanifest](../public/manifest.webmanifest) defines standalone portrait installation with regular and maskable launcher icons. [generate-service-worker.mjs](../scripts/generate-service-worker.mjs) precaches the complete single-file app plus public images, SVG controls, manifest, favicon, and audio; navigation falls back to the cached app shell and old versioned caches are removed during activation.
 - [audio.ts](../src/audio.ts) preloads the named effects in [public/sounds](../public/sounds) once, caches decoded `AudioBuffer` instances, and creates a fresh one-shot source for each gameplay event. Per-sound voice limits prevent rapid input from building unbounded overlap; death, reward, and terminal groups replace only mutually exclusive cues with a short fade. Trailing silence is measured once after decode and omitted during playback, while restart, game exit, and unmount paths stop active sources.
 - Level-complete and game-over sounds are driven by committed `gameWon` and `gameOver` state in [useGame.ts](../src/useGame.ts), with one-shot refs reset on the next round. Audio and metrics side effects must not run inside React state updater functions.
+- Goal landing is resolved once through [gameChallenge.ts](../src/gameChallenge.ts), synchronously committed to both the runtime ref and React state, and guarded against duplicate processing. Intermediate goals reset the frog in the same simulation tick; the final goal exposes `gameWon` immediately and is the only goal that can award level-clear bonuses.
+- [Scene.tsx](../src/Scene.tsx) is memoized around narrow scene props, filled goals use emissive materials without adding point lights, and [App.tsx](../src/App.tsx) switches the R3F frameloop to demand mode whenever gameplay is hidden by pause, terminal, victory, or orientation overlays.
 - [localization.ts](../src/localization.ts) is the shared source for English and Russian start-screen, gameplay, pause, Bonus Guide, level-complete, game-over, and exit-confirmation copy. [App.tsx](../src/App.tsx) owns the selected locale so it survives game entry and return to the main screen.
 - [gameInput.ts](../src/gameInput.ts) maps physical `KeyboardEvent.code` values to semantic move, pause, restart, and dev-step actions, keeping controls independent from the active keyboard layout.
 - Gameplay, pause, and game-over keyboard help remains in layout but is rendered at zero opacity on phone-sized portrait and landscape viewports.
