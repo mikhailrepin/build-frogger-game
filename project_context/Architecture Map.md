@@ -1,5 +1,5 @@
 ---
-context_version: 0.5.3
+context_version: 0.6.0
 status: active
 updated: 2026-07-05
 ---
@@ -30,6 +30,9 @@ updated: 2026-07-05
 - Replay capture and QA playback: [gameReplay.ts](../src/gameReplay.ts)
 - Challenge session and reward flow: [gameChallenge.ts](../src/gameChallenge.ts)
 - Shared procedural music, menu media, and decoded gameplay-sound adapter: [audio.ts](../src/audio.ts)
+- Install metadata and launcher icons: [manifest.webmanifest](../public/manifest.webmanifest)
+- Production offline precache generator: [generate-service-worker.mjs](../scripts/generate-service-worker.mjs)
+- Production service worker registration: [main.tsx](../src/main.tsx)
 - Styling: [index.css](../src/index.css)
 
 ## Current Flow
@@ -44,6 +47,7 @@ updated: 2026-07-05
 8. [gameReplay.ts](../src/gameReplay.ts) records deterministic input and state snapshots for QA reproduction.
 9. [gameChallenge.ts](../src/gameChallenge.ts) owns challenge-session state transitions and reward scoring helpers.
 10. [audio.ts](../src/audio.ts) preloads and decodes named gameplay MP3 effects, creates procedural gameplay music, and owns the main-menu media element.
+11. The production build runs [generate-service-worker.mjs](../scripts/generate-service-worker.mjs) after Vite, fingerprints every emitted file, and writes an offline-first `dist/sw.js`; [main.tsx](../src/main.tsx) registers it only in production.
 
 ## Stability Notes
 
@@ -59,6 +63,7 @@ updated: 2026-07-05
 - The DOM HUD in [App.tsx](../src/App.tsx) uses Figma-exported UI assets from `public/ui`, `Geologica` typography, and liquid-glass panel styling while keeping touch controls visible across pointer classes so mobile devices always have an input path.
 - [MainScreen.tsx](../src/MainScreen.tsx) keeps the background, title art, and frog on separate responsive parallax layers; the game runtime is not mounted until Start Game completes its short fade-to-black transition. The looping `public/sounds/main-menu.mp3` track stays active across the `menu` and `menu-guide` phases, shares mute and volume settings with gameplay audio through [audio.ts](../src/audio.ts), and retries playback after the first user gesture when browser autoplay policy blocks the initial attempt. The footer reads the application version from `package.json`.
 - [OrientationGate.tsx](../src/OrientationGate.tsx) covers every app phase on phone-sized landscape viewports, tracks window, orientation, and visual viewport changes, and uses [orientationPolicy.ts](../src/orientationPolicy.ts) for the same phone bounds as the mobile camera. While visible, [useGame.ts](../src/useGame.ts) holds the simulation and rejects gameplay input through a separate suspension flag without changing the player's pause state; menu audio continues under the shared mute and volume settings.
+- [manifest.webmanifest](../public/manifest.webmanifest) defines standalone portrait installation with regular and maskable launcher icons. [generate-service-worker.mjs](../scripts/generate-service-worker.mjs) precaches the complete single-file app plus public images, SVG controls, manifest, favicon, and audio; navigation falls back to the cached app shell and old versioned caches are removed during activation.
 - [audio.ts](../src/audio.ts) preloads the named effects in [public/sounds](../public/sounds) once, caches decoded `AudioBuffer` instances, and creates a fresh one-shot source for each gameplay event. Per-sound voice limits prevent rapid input from building unbounded overlap; death, reward, and terminal groups replace only mutually exclusive cues with a short fade. Trailing silence is measured once after decode and omitted during playback, while restart, game exit, and unmount paths stop active sources.
 - Level-complete and game-over sounds are driven by committed `gameWon` and `gameOver` state in [useGame.ts](../src/useGame.ts), with one-shot refs reset on the next round. Audio and metrics side effects must not run inside React state updater functions.
 - [localization.ts](../src/localization.ts) is the shared source for English and Russian start-screen, gameplay, pause, Bonus Guide, level-complete, game-over, and exit-confirmation copy. [App.tsx](../src/App.tsx) owns the selected locale so it survives game entry and return to the main screen.

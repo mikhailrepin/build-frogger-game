@@ -1,5 +1,5 @@
 ---
-context_version: 0.5.3
+context_version: 0.6.0
 status: active
 updated: 2026-07-05
 ---
@@ -47,6 +47,8 @@ This Obsidian vault is the primary documentation-context core and memory store f
 - [Replay capture and QA playback](../src/gameReplay.ts)
 - [Challenge session and reward flow](../src/gameChallenge.ts)
 - [Audio system](../src/audio.ts)
+- [PWA manifest](../public/manifest.webmanifest)
+- [Offline service worker generator](../scripts/generate-service-worker.mjs)
 
 ## Maintenance Rule
 

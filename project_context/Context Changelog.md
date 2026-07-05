@@ -1,10 +1,37 @@
 ---
-context_version: 0.5.3
+context_version: 0.6.0
 status: active
 updated: 2026-07-05
 ---
 
 # Context Changelog
+
+## 1.37.0 - 2026-07-05
+
+Changed files and notes:
+
+- [HTML entry point](../index.html)
+- [React entry point](../src/main.tsx)
+- [PWA manifest](../public/manifest.webmanifest)
+- [Offline service worker generator](../scripts/generate-service-worker.mjs)
+- [PWA launcher icons](../public)
+- [Build scripts](../package.json)
+- [Context index](00%20Context%20Index.md)
+- [Architecture Map](Architecture%20Map.md)
+- [Implementation Notes](Implementation%20Notes.md)
+- [Project audit](PROJECT.mdc)
+
+Reason:
+
+- The game must remain playable after connectivity is lost and support installation on device home screens.
+- The favicon URL needed an explicit MIME type and cache-busting revision so browsers stop reusing the previous emoji icon.
+
+Implementation impact:
+
+- Production builds generate a content-versioned service worker that precaches all emitted game files and falls back to the cached app shell for offline navigation.
+- The manifest defines standalone portrait installation with 192px, 512px, Apple Touch, and maskable artwork derived from the existing frog asset.
+- Service worker registration occurs only in production, avoiding stale cache behavior during local Vite development.
+- The favicon continues to use `public/favicon.ico`, now through a versioned URL plus an explicit shortcut-icon declaration.
 
 ## 1.36.0 - 2026-07-05
 

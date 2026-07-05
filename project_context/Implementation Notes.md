@@ -1,5 +1,5 @@
 ---
-context_version: 0.5.3
+context_version: 0.6.0
 status: active
 updated: 2026-07-05
 ---
@@ -38,6 +38,8 @@ When documentation mentions implementation details, include links to the relevan
 - Challenge session and reward flow: [gameChallenge.ts](../src/gameChallenge.ts)
 - Audio: [audio.ts](../src/audio.ts)
 - Gameplay sound bank: [public/sounds](../public/sounds)
+- PWA install metadata: [manifest.webmanifest](../public/manifest.webmanifest)
+- Offline build generator: [generate-service-worker.mjs](../scripts/generate-service-worker.mjs)
 
 ## Implementation Checklist
 
@@ -50,6 +52,8 @@ When documentation mentions implementation details, include links to the relevan
 - Link new docs to [[00 Context Index]] if they become stable project context.
 - If documentation mentions a concrete behavior, include the source file and the related context note in the same change set.
 - Keep metrics adapters and metrics storage separate from the core gameplay loop.
+- Validate PWA work against the production preview: development mode intentionally does not register the service worker.
+- Keep every new production asset covered by the generated precache instead of maintaining a manual asset list.
 
 ## Version-Control Discipline
 

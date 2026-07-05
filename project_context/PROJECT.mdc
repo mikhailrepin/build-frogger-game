@@ -63,6 +63,8 @@ Result: production build succeeds.
 - The start screen loops `public/sounds/main-menu.mp3`; the shared audio adapter keeps its mute and volume synchronized with gameplay audio, retries after the first browser-approved interaction when autoplay is blocked, and disposes the media element when gameplay starts.
 - English and Russian copy is shared across the start screen, gameplay HUD and controls, pause, level-complete, game-over, and main-screen exit confirmation.
 - Phone-sized landscape viewports now show a localized animated rotate-device gate across every app phase; active gameplay simulation and input are suspended until portrait orientation returns without altering the user's pause state.
+- Production builds now ship an installable portrait PWA manifest and a generated, content-versioned service worker that precaches the complete game for offline menu and gameplay startup.
+- Browser favicon metadata now references the supplied `public/favicon.ico` through an explicit cache-busted ICO URL, while launcher and Apple Touch icons use dedicated PNG artwork.
 - Level-complete and game-over overlays now match their HMI Studio layouts, use the shared Geologica/liquid-glass UI language, remain adapters around the existing score, bonus, high-score, level-transition, and restart state, and render in the locale selected on the start screen.
 - Camera framing now keeps the baseline orthographic zoom stable and follows the player with a lower-screen reserve for controls.
 - Primary HUD indicators and controls now use local Figma-exported UI assets with lucide fallback icons for non-Figma bonus types instead of emoji glyphs or one-off inline SVG controls.
