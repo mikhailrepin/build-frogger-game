@@ -26,6 +26,7 @@ import {
 } from './audio';
 import { version as APP_VERSION } from '../package.json';
 import { UI_COPY, type Locale } from './localization';
+import { OrientationGate, useOrientationGate } from './OrientationGate';
 
 type IconComponent = ComponentType<{ className?: string; strokeWidth?: number }>;
 type BonusKind = 'shield' | 'slowTime' | 'currentAnchor' | 'superHop' | 'fly';
@@ -77,6 +78,7 @@ interface GameProps {
   audioSettings: ReturnType<typeof getAudioSettings>;
   locale: Locale;
   reducedMotion: boolean;
+  suspended: boolean;
   onDecreaseVolume: () => void;
   onIncreaseVolume: () => void;
   onExitToMainScreen: () => void;
@@ -87,6 +89,7 @@ function Game({
   audioSettings,
   locale,
   reducedMotion,
+  suspended,
   onDecreaseVolume,
   onIncreaseVolume,
   onExitToMainScreen,
@@ -114,7 +117,7 @@ function Game({
     laneConfigs,
     totalRows,
     devFlags,
-  } = useGame();
+  } = useGame({ suspended });
   const [shaking, setShaking] = useState(false);
   const [cellDebug, setCellDebug] = useState<{ row: number; col: number } | null>(null);
   const [revealingGame, setRevealingGame] = useState(true);
@@ -332,6 +335,7 @@ export default function App() {
   const [reducedMotion, setReducedMotion] = useState(() => (
     typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
   ));
+  const orientationGateVisible = useOrientationGate();
   const startTimerRef = useRef<number | null>(null);
   const mainMenuActive = phase !== 'playing';
 
@@ -429,19 +433,24 @@ export default function App() {
             onExitGuide={() => setPhase('menu')}
           />
         ) : null}
+        <OrientationGate locale={locale} visible={orientationGateVisible} />
       </>
     );
   }
 
   return (
-    <Game
-      audioSettings={audioSettings}
-      locale={locale}
-      reducedMotion={reducedMotion}
-      onDecreaseVolume={decreaseVolume}
-      onIncreaseVolume={increaseVolume}
-      onExitToMainScreen={exitToMainScreen}
-      onToggleMuted={toggleMuted}
-    />
+    <>
+      <Game
+        audioSettings={audioSettings}
+        locale={locale}
+        reducedMotion={reducedMotion}
+        suspended={orientationGateVisible}
+        onDecreaseVolume={decreaseVolume}
+        onIncreaseVolume={increaseVolume}
+        onExitToMainScreen={exitToMainScreen}
+        onToggleMuted={toggleMuted}
+      />
+      <OrientationGate locale={locale} visible={orientationGateVisible} />
+    </>
   );
 }

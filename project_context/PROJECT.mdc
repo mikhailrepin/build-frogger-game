@@ -62,6 +62,7 @@ Result: production build succeeds.
 - The application now opens on the HMI Studio `96:575` start screen with responsive background, title, and frog parallax layers, matching language flags, shared mute state, and a short fade-through-black transition into gameplay.
 - The start screen loops `public/sounds/main-menu.mp3`; the shared audio adapter keeps its mute and volume synchronized with gameplay audio, retries after the first browser-approved interaction when autoplay is blocked, and disposes the media element when gameplay starts.
 - English and Russian copy is shared across the start screen, gameplay HUD and controls, pause, level-complete, game-over, and main-screen exit confirmation.
+- Phone-sized landscape viewports now show a localized animated rotate-device gate across every app phase; active gameplay simulation and input are suspended until portrait orientation returns without altering the user's pause state.
 - Level-complete and game-over overlays now match their HMI Studio layouts, use the shared Geologica/liquid-glass UI language, remain adapters around the existing score, bonus, high-score, level-transition, and restart state, and render in the locale selected on the start screen.
 - Camera framing now keeps the baseline orthographic zoom stable and follows the player with a lower-screen reserve for controls.
 - Primary HUD indicators and controls now use local Figma-exported UI assets with lucide fallback icons for non-Figma bonus types instead of emoji glyphs or one-off inline SVG controls.
@@ -165,6 +166,7 @@ Risk level: medium-high.
 - HUD layout uses a centered max-width row with fixed gaps and fixed 48px touch buttons. It may work on many phones, but the top bar can become crowded on very narrow screens because score, title, level, and lives remain in one horizontal row.
 - Touch controls remain available across pointer classes, while keyboard help is visually hidden without collapsing layout on phone-sized portrait and landscape viewports.
 - The game respects reduced-motion preferences by damping non-essential scene motion.
+- The phone landscape gate respects safe-area insets and reduced-motion preferences while leaving tablet and desktop landscape layouts available.
 - Dev mode exposes a single-step control so paused QA sessions can advance one simulation tick at a time, and the pause state persists through restart/transition flows.
 
 Recommended direction:

@@ -94,8 +94,14 @@ type ActiveBonusHud = {
   remainingSeconds: number;
 };
 
-export function useGame() {
+interface UseGameOptions {
+  suspended?: boolean;
+}
+
+export function useGame({ suspended = false }: UseGameOptions = {}) {
   const search = typeof window !== 'undefined' ? window.location.search : '';
+  const suspendedRef = useRef(suspended);
+  suspendedRef.current = suspended;
   const devFlagsRef = useRef<DevFlags>(
     parseDevFlags(search),
   );
@@ -581,7 +587,7 @@ export function useGame() {
   const moveFrog = useCallback((direction: Direction, source: ReplayInputSource = 'keyboard') => {
     const f = frogRef.current;
     const gs = gameStateRef.current;
-    if (f.isHopping || !f.alive || gs.gameOver || gs.gameWon || gs.paused) return;
+    if (suspendedRef.current || f.isHopping || !f.alive || gs.gameOver || gs.gameWon || gs.paused) return;
 
     const hopCells = superHopActiveRef.current ? 2 : 1;
     const proposal = getMoveProposal(f.pos, direction, rowsRef.current, hopCells);
@@ -646,7 +652,7 @@ export function useGame() {
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (replayPlaybackSnapshotRef.current) {
+      if (suspendedRef.current || replayPlaybackSnapshotRef.current) {
         return;
       }
 
@@ -729,7 +735,7 @@ export function useGame() {
 
       const gs = gameStateRef.current;
       const stepMode = devFlagsRef.current.stepSimulation;
-      const shouldHold = gs.gameOver || gs.paused || stepMode;
+      const shouldHold = suspendedRef.current || gs.gameOver || gs.paused || stepMode;
       if (shouldHold && !stepRequestedRef.current) {
         const f = frogRef.current;
         if (f.isHopping) {

@@ -1,10 +1,37 @@
 ---
-context_version: 0.5.2
+context_version: 0.5.3
 status: active
-updated: 2026-07-04
+updated: 2026-07-05
 ---
 
 # Context Changelog
+
+## 1.36.0 - 2026-07-05
+
+Changed files and notes:
+
+- [OrientationGate.tsx](../src/OrientationGate.tsx)
+- [orientationPolicy.ts](../src/orientationPolicy.ts)
+- [orientationGate.test.ts](../src/orientationGate.test.ts)
+- [App.tsx](../src/App.tsx)
+- [useGame.ts](../src/useGame.ts)
+- [localization.ts](../src/localization.ts)
+- [index.css](../src/index.css)
+- [Context index](00%20Context%20Index.md)
+- [Architecture Map](Architecture%20Map.md)
+- [Implementation Notes](Implementation%20Notes.md)
+- [Project audit](PROJECT.mdc)
+
+Reason:
+
+- Phone-sized landscape layouts need a clear orientation instruction instead of exposing compressed menu and gameplay surfaces.
+
+Implementation impact:
+
+- Every app phase is covered by a localized, safe-area-aware orientation gate on phone-sized landscape viewports.
+- Its SVG phone and rotation cue animate unless reduced motion is requested.
+- Active gameplay holds simulation and rejects input while the gate is visible, then resumes without changing the existing pause state.
+- The main-menu track remains active and continues to obey shared mute and volume settings.
 
 ## 1.35.2 - 2026-07-04
 

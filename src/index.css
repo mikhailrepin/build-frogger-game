@@ -74,6 +74,126 @@ html, body, #root { width: 100%; height: 100%; margin: 0; padding: 0; overflow: 
 body { background: #002713; }
 ::-webkit-scrollbar { display: none; }
 
+.orientation-gate {
+  position: fixed;
+  z-index: 1000;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  padding:
+    max(24px, env(safe-area-inset-top))
+    max(24px, env(safe-area-inset-right))
+    max(24px, env(safe-area-inset-bottom))
+    max(24px, env(safe-area-inset-left));
+  color: #d6e5d8;
+  background:
+    radial-gradient(circle at 50% 42%, rgba(66, 152, 76, 0.2), transparent 38%),
+    linear-gradient(145deg, #061b10 0%, #001108 100%);
+  isolation: isolate;
+  user-select: none;
+  touch-action: none;
+}
+
+.orientation-gate::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px);
+  background-size: 28px 28px;
+  mask-image: radial-gradient(circle at center, black, transparent 72%);
+}
+
+.orientation-gate__content {
+  position: relative;
+  display: flex;
+  max-width: 480px;
+  flex-direction: column;
+  align-items: center;
+  gap: clamp(12px, 3.5svh, 24px);
+  text-align: center;
+}
+
+.orientation-gate__visual {
+  position: relative;
+  width: clamp(92px, 24svh, 128px);
+  height: clamp(92px, 24svh, 128px);
+  color: #83d84c;
+  filter: drop-shadow(0 0 18px rgba(131, 216, 76, 0.28));
+}
+
+.orientation-gate__device,
+.orientation-gate__arrow {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.orientation-gate__device {
+  z-index: 1;
+  animation: orientation-gate-device 2.4s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+}
+
+.orientation-gate__device svg {
+  width: 48%;
+  height: 68%;
+  fill: rgba(131, 216, 76, 0.06);
+}
+
+.orientation-gate__arrow {
+  color: rgba(214, 229, 216, 0.72);
+  animation: orientation-gate-arrow 2.4s ease-in-out infinite;
+}
+
+.orientation-gate__arrow svg {
+  width: 100%;
+  height: 100%;
+}
+
+.orientation-gate__message {
+  margin: 0;
+  max-width: 420px;
+  font-size: clamp(17px, 4.8svh, 24px);
+  font-weight: 500;
+  line-height: 1.35;
+  letter-spacing: clamp(0.7px, 0.25vw, 1.6px);
+  text-wrap: balance;
+  text-shadow: 0 3px 18px rgba(0, 0, 0, 0.55);
+}
+
+@keyframes orientation-gate-device {
+  0%, 16% {
+    transform: rotate(0deg) scale(0.96);
+  }
+  45%, 68% {
+    transform: rotate(90deg) scale(1);
+  }
+  100% {
+    transform: rotate(0deg) scale(0.96);
+  }
+}
+
+@keyframes orientation-gate-arrow {
+  0%, 12% {
+    opacity: 0.18;
+    transform: rotate(-30deg) scale(0.88);
+  }
+  42%, 70% {
+    opacity: 0.78;
+    transform: rotate(18deg) scale(1);
+  }
+  100% {
+    opacity: 0.18;
+    transform: rotate(-30deg) scale(0.88);
+  }
+}
+
 .start-screen {
   --start-bg-x: 0px;
   --start-bg-y: 0px;
@@ -366,6 +486,17 @@ body { background: #002713; }
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .orientation-gate__device {
+    animation: none;
+    transform: rotate(90deg);
+  }
+
+  .orientation-gate__arrow {
+    animation: none;
+    opacity: 0.52;
+    transform: rotate(8deg);
+  }
+
   .start-screen__background,
   .start-screen__logo,
   .start-screen__frog,

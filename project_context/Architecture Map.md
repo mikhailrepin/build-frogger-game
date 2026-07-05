@@ -1,7 +1,7 @@
 ---
-context_version: 0.5.2
+context_version: 0.5.3
 status: active
-updated: 2026-07-04
+updated: 2026-07-05
 ---
 
 # Architecture Map
@@ -14,6 +14,8 @@ updated: 2026-07-04
 - Shared bonus mesh definitions: [BonusModel3D.tsx](../src/BonusModel3D.tsx)
 - Bonus Guide ordering and cyclic navigation: [bonusGuide.ts](../src/bonusGuide.ts)
 - Shared English/Russian UI copy: [localization.ts](../src/localization.ts)
+- Mobile landscape blocker and viewport subscription: [OrientationGate.tsx](../src/OrientationGate.tsx)
+- Pure phone-landscape viewport policy: [orientationPolicy.ts](../src/orientationPolicy.ts)
 - Figma-aligned main-screen exit confirmation: [ConfirmExitOverlay.tsx](../src/ConfirmExitOverlay.tsx)
 - Figma-aligned end-state overlays: [EndStateOverlay.tsx](../src/EndStateOverlay.tsx)
 - Gameplay hook and loop: [useGame.ts](../src/useGame.ts)
@@ -56,6 +58,7 @@ updated: 2026-07-04
 - Water in [Scene.tsx](../src/Scene.tsx) is rendered as one continuous shader surface per contiguous river section with `#0045A0` coloration; longitudinal current streaks follow each lane's platform direction and blend across lane boundaries, while the lily-pad goal lane uses static water. The general level background is `#072615` and the board plinth material remains separate.
 - The DOM HUD in [App.tsx](../src/App.tsx) uses Figma-exported UI assets from `public/ui`, `Geologica` typography, and liquid-glass panel styling while keeping touch controls visible across pointer classes so mobile devices always have an input path.
 - [MainScreen.tsx](../src/MainScreen.tsx) keeps the background, title art, and frog on separate responsive parallax layers; the game runtime is not mounted until Start Game completes its short fade-to-black transition. The looping `public/sounds/main-menu.mp3` track stays active across the `menu` and `menu-guide` phases, shares mute and volume settings with gameplay audio through [audio.ts](../src/audio.ts), and retries playback after the first user gesture when browser autoplay policy blocks the initial attempt. The footer reads the application version from `package.json`.
+- [OrientationGate.tsx](../src/OrientationGate.tsx) covers every app phase on phone-sized landscape viewports, tracks window, orientation, and visual viewport changes, and uses [orientationPolicy.ts](../src/orientationPolicy.ts) for the same phone bounds as the mobile camera. While visible, [useGame.ts](../src/useGame.ts) holds the simulation and rejects gameplay input through a separate suspension flag without changing the player's pause state; menu audio continues under the shared mute and volume settings.
 - [audio.ts](../src/audio.ts) preloads the named effects in [public/sounds](../public/sounds) once, caches decoded `AudioBuffer` instances, and creates a fresh one-shot source for each gameplay event. Per-sound voice limits prevent rapid input from building unbounded overlap; death, reward, and terminal groups replace only mutually exclusive cues with a short fade. Trailing silence is measured once after decode and omitted during playback, while restart, game exit, and unmount paths stop active sources.
 - Level-complete and game-over sounds are driven by committed `gameWon` and `gameOver` state in [useGame.ts](../src/useGame.ts), with one-shot refs reset on the next round. Audio and metrics side effects must not run inside React state updater functions.
 - [localization.ts](../src/localization.ts) is the shared source for English and Russian start-screen, gameplay, pause, Bonus Guide, level-complete, game-over, and exit-confirmation copy. [App.tsx](../src/App.tsx) owns the selected locale so it survives game entry and return to the main screen.

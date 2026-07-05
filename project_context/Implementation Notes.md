@@ -1,7 +1,7 @@
 ---
-context_version: 0.5.2
+context_version: 0.5.3
 status: active
-updated: 2026-07-04
+updated: 2026-07-05
 ---
 
 # Implementation Notes
@@ -27,6 +27,8 @@ When documentation mentions implementation details, include links to the relevan
 - Shared bonus models: [BonusModel3D.tsx](../src/BonusModel3D.tsx)
 - Bonus guide navigation: [bonusGuide.ts](../src/bonusGuide.ts)
 - UI localization: [localization.ts](../src/localization.ts)
+- Mobile orientation gate: [OrientationGate.tsx](../src/OrientationGate.tsx)
+- Orientation viewport policy: [orientationPolicy.ts](../src/orientationPolicy.ts)
 - Exit confirmation: [ConfirmExitOverlay.tsx](../src/ConfirmExitOverlay.tsx)
 - Level constants: [gameConstants.ts](../src/gameConstants.ts)
 - Viewport fitting math: [viewMath.ts](../src/viewMath.ts)

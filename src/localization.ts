@@ -4,6 +4,9 @@ import type { BonusItem } from './gameCore';
 export type Locale = 'en' | 'ru';
 
 interface UiCopy {
+  orientationGate: {
+    message: string;
+  };
   mainScreen: {
     start: string;
     bonusGuide: string;
@@ -71,6 +74,9 @@ interface UiCopy {
 
 export const UI_COPY = {
   en: {
+    orientationGate: {
+      message: 'Rotate your device to continue',
+    },
     mainScreen: {
       start: 'Start Game',
       bonusGuide: 'Bonus Guide',
@@ -159,6 +165,9 @@ export const UI_COPY = {
     },
   },
   ru: {
+    orientationGate: {
+      message: 'Переверните устройство для продолжения',
+    },
     mainScreen: {
       start: 'Начать игру',
       bonusGuide: 'Бонусы',

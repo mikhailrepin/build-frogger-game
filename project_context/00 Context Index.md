@@ -1,7 +1,7 @@
 ---
-context_version: 0.5.2
+context_version: 0.5.3
 status: active
-updated: 2026-07-04
+updated: 2026-07-05
 ---
 
 # Context Index
@@ -31,6 +31,8 @@ This Obsidian vault is the primary documentation-context core and memory store f
 - [Shared in-game and guide bonus models](../src/BonusModel3D.tsx)
 - [Bonus guide ordering and navigation](../src/bonusGuide.ts)
 - [Shared UI localization](../src/localization.ts)
+- [Mobile landscape orientation gate](../src/OrientationGate.tsx)
+- [Orientation gate viewport policy](../src/orientationPolicy.ts)
 - [Exit confirmation overlay](../src/ConfirmExitOverlay.tsx)
 - [End-state overlays](../src/EndStateOverlay.tsx)
 - [Game state and loop](../src/useGame.ts)
